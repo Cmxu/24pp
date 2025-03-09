@@ -1046,6 +1046,62 @@
     font-size: 0.9rem;
     padding: 8px 32px 8px 14px;
   }
+  
+  .card, .operation-button, .equation-item {
+    /* Increase touch target size for mobile */
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Remove hover effects on touch devices */
+  .card:hover,
+  .operation-button:hover,
+  .equation-item:hover {
+    transform: none;
+    box-shadow: 0 4px 8px var(--card-shadow);
+  }
+  
+  /* Apply active state on touch */
+  .card:active,
+  .operation-button:active,
+  .equation-item:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 4px var(--card-shadow);
+  }
+  
+  /* Increase the size of operation buttons for easier touch */
+  .operations-container {
+    gap: 16px;
+  }
+  
+  .operation-button {
+    width: 60px;
+    height: 60px;
+    font-size: 1.5rem;
+  }
+  
+  /* Make the equation area more touch-friendly */
+  .equation {
+    padding: 20px;
+    min-height: 80px;
+  }
+  
+  .equation-item {
+    margin: 0 8px;
+    padding: 10px 15px;
+  }
+}
+
+/* Fix iOS-specific touch issues */
+@supports (-webkit-touch-callout: none) {
+  .card, .operation-button, .equation-item {
+    /* Disable callout on iOS */
+    -webkit-touch-callout: none;
+    /* Disable user selection on iOS */
+    -webkit-user-select: none;
+    /* Prevent default touch behaviors */
+    -webkit-tap-highlight-color: transparent;
+  }
 }
 
 @media (max-width: 480px) {
@@ -2303,6 +2359,7 @@
   width: 24px;
   height: 24px;
   fill: currentColor;
+  display: block; /* Ensure proper display */
 }
 
 .copy-message-btn:hover {

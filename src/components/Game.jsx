@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Parser } from 'expr-eval';
 import './Game.css';
 
 const OPERATIONS = ['+', '-', '×', '÷', '(', ')'];
@@ -144,6 +145,8 @@ const Confetti = ({ active }) => {
 
 // Draggable Card Component
 const DraggableCard = ({ card, index, isSelected, onDragStart }) => {
+  const cardRef = useRef(null);
+  
   // Helper function to display correct value for face cards
   const getDisplayValue = (value) => {
     switch (value) {
@@ -170,8 +173,48 @@ const DraggableCard = ({ card, index, isSelected, onDragStart }) => {
     onDragStart('card', card, index, e);
   };
 
+  // Add touch event listeners using refs instead of props
+  useEffect(() => {
+    const element = cardRef.current;
+    if (!element) return;
+    
+    const handleTouchStart = (e) => {
+      if (isSelected) return; // Already used, can't drag
+      
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const touch = e.touches[0];
+      const rect = element.getBoundingClientRect();
+      const offsetX = touch.clientX - rect.left;
+      const offsetY = touch.clientY - rect.top;
+      
+      // Create a synthetic event with clientX and clientY from the touch
+      const syntheticEvent = {
+        preventDefault: () => {},
+        stopPropagation: () => {},
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        currentTarget: element,
+        target: e.target
+      };
+      
+      // Call parent component's onDragStart
+      onDragStart('card', card, index, syntheticEvent);
+    };
+    
+    // Add the event listener with passive: false to allow preventDefault()
+    element.addEventListener('touchstart', handleTouchStart, { passive: false });
+    
+    // Clean up
+    return () => {
+      element.removeEventListener('touchstart', handleTouchStart);
+    };
+  }, [card, index, isSelected, onDragStart]);
+
   return (
     <div 
+      ref={cardRef}
       className={`card ${isSelected ? 'selected' : ''}`}
       onMouseDown={handleMouseDown}
       style={{ color: card.suit === '♥' || card.suit === '♦' ? 'red' : 'black' }}
@@ -191,6 +234,8 @@ const DraggableCard = ({ card, index, isSelected, onDragStart }) => {
 
 // Draggable Operation Button
 const DraggableOperation = ({ operation, onDragStart }) => {
+  const operationRef = useRef(null);
+  
   const handleMouseDown = (e) => {
     if (e.button !== 0) return; // Only accept left mouse button
     
@@ -205,6 +250,43 @@ const DraggableOperation = ({ operation, onDragStart }) => {
     onDragStart('operation', operation, null, e);
   };
   
+  // Add touch event listeners using refs instead of props
+  useEffect(() => {
+    const element = operationRef.current;
+    if (!element) return;
+    
+    const handleTouchStart = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const touch = e.touches[0];
+      const rect = element.getBoundingClientRect();
+      const offsetX = touch.clientX - rect.left;
+      const offsetY = touch.clientY - rect.top;
+      
+      // Create a synthetic event with clientX and clientY from the touch
+      const syntheticEvent = {
+        preventDefault: () => {},
+        stopPropagation: () => {},
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        currentTarget: element,
+        target: e.target
+      };
+      
+      // Call parent component's onDragStart
+      onDragStart('operation', operation, null, syntheticEvent);
+    };
+    
+    // Add the event listener with passive: false to allow preventDefault()
+    element.addEventListener('touchstart', handleTouchStart, { passive: false });
+    
+    // Clean up
+    return () => {
+      element.removeEventListener('touchstart', handleTouchStart);
+    };
+  }, [operation, onDragStart]);
+  
   // Map stylized symbols back to their functional counterparts
   const displayOperation = (op) => {
     switch (op) {
@@ -216,6 +298,7 @@ const DraggableOperation = ({ operation, onDragStart }) => {
   
   return (
     <button 
+      ref={operationRef}
       className="operation-button"
       onMouseDown={handleMouseDown}
     >
@@ -226,6 +309,8 @@ const DraggableOperation = ({ operation, onDragStart }) => {
 
 // Equation Item Component (can be dragged)
 const EquationItem = ({ item, index, onDragStart, onClick }) => {
+  const itemRef = useRef(null);
+  
   let itemClass = '';
   let displayValue = item;
   
@@ -252,8 +337,35 @@ const EquationItem = ({ item, index, onDragStart, onClick }) => {
     onDragStart(item, index, 'equation-item', e.clientX, e.clientY, offsetX, offsetY, index);
   };
   
+  // Add touch event listeners using refs instead of props
+  useEffect(() => {
+    const element = itemRef.current;
+    if (!element) return;
+    
+    const handleTouchStart = (e) => {
+      e.preventDefault();
+      
+      const touch = e.touches[0];
+      const rect = element.getBoundingClientRect();
+      const offsetX = touch.clientX - rect.left;
+      const offsetY = touch.clientY - rect.top;
+      
+      // Call drag start but also pass the index in the equation
+      onDragStart(item, index, 'equation-item', touch.clientX, touch.clientY, offsetX, offsetY, index);
+    };
+    
+    // Add the event listener with passive: false to allow preventDefault()
+    element.addEventListener('touchstart', handleTouchStart, { passive: false });
+    
+    // Clean up
+    return () => {
+      element.removeEventListener('touchstart', handleTouchStart);
+    };
+  }, [item, index, onDragStart]);
+  
   return (
     <span 
+      ref={itemRef}
       className={`equation-item ${itemClass}`}
       onMouseDown={handleMouseDown}
       onClick={onClick}
@@ -611,9 +723,12 @@ const SolvedModal = ({ isOpen, onClose, targetNumber, equation, onRedeal, gameMo
     
     navigator.clipboard.writeText(getCompletionMessage())
       .then(() => {
-        // Show visual feedback
-        button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
-        button.style.color = '#4CAF50';
+        // Show visual feedback with a simpler, clearer checkmark
+        button.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z" fill="#4CAF50"/>
+          </svg>
+        `;
         
         // Reset after a short delay
         setTimeout(() => {
@@ -1233,6 +1348,12 @@ const Game = () => {
   // Update win condition to show modal and play sound
   const checkWinCondition = useCallback(() => {
     try {
+      // Skip evaluation if equation is empty
+      if (equation.length === 0) {
+        setResult(null);
+        return;
+      }
+      
       // Convert equation to a string and evaluate it
       const equationString = equation.map(item => {
         if (typeof item === 'object' && item.type === 'card') {
@@ -1245,7 +1366,9 @@ const Game = () => {
         return item;
       }).join(' ');
       
-      const calculatedResult = eval(equationString);
+      // Create a parser instance and evaluate the expression
+      const parser = new Parser();
+      const calculatedResult = parser.evaluate(equationString);
       
       // Check if result is valid
       if (calculatedResult !== undefined && !isNaN(calculatedResult)) {
@@ -1261,13 +1384,13 @@ const Game = () => {
             setHasWon(true);
             setIsSolvedModalOpen(true);
             
-            // Play win sound - temporarily commented out
+            // Play win sound effect if available
             // if (winSoundRef.current) {
             //   winSoundRef.current.currentTime = 0;
             //   winSoundRef.current.play().catch(e => console.error("Error playing sound:", e));
             // }
           } else {
-            setMessage(`Almost there! You've reached ${targetNumber}, but you must use all ${playCards.length} cards to win. You've used ${numberCardsUsed} cards.`);
+            setMessage(`You've found the target number, but you need to use all 7 cards to win. You've used ${numberCardsUsed} cards.`);
           }
         }
       } else {
@@ -1365,13 +1488,31 @@ const Game = () => {
   // Add keyboard event handlers
   useEffect(() => {
     const handleKeyDown = (event) => {
-      // Skip if any modal is open
+      const key = event.key.toLowerCase();
+      
+      // Handle Escape key to close modals, regardless of game state
+      if (key === 'escape') {
+        // Close modals in order of priority
+        if (isSolvedModalOpen) {
+          setIsSolvedModalOpen(false);
+          return;
+        }
+        if (isInstructionsModalOpen) {
+          setIsInstructionsModalOpen(false);
+          return;
+        }
+        if (isWelcomeModalOpen) {
+          // Start daily game when escaping from welcome screen
+          handleModeSelection('daily');
+          return;
+        }
+      }
+      
+      // Skip other key handling if any modal is open
       if (isWelcomeModalOpen || isInstructionsModalOpen || isSolvedModalOpen) {
         return;
       }
 
-      const key = event.key.toLowerCase();
-      
       // Number keys (0-9)
       if (!isNaN(parseInt(key)) || key === '0') {
         // Find the first available card with the matching number
@@ -1483,7 +1624,11 @@ const Game = () => {
     handleCardClick,
     handleBackspace,
     redealGame,
-    handleOperationClick
+    handleOperationClick,
+    setIsWelcomeModalOpen,
+    setIsInstructionsModalOpen,
+    setIsSolvedModalOpen,
+    handleModeSelection
   ]);
 
   // Add game mode UI to the header
@@ -1522,6 +1667,190 @@ const Game = () => {
       </div>
     );
   };
+
+  // Add touch event listeners
+  useEffect(() => {
+    // Touch event handlers
+    const handleTouchMove = (e) => {
+      if (!dragging) return;
+      
+      // Prevent the default touchmove action only when dragging
+      // This prevents scrolling while dragging but allows normal scrolling otherwise
+      e.preventDefault();
+      
+      // Use the first touch
+      const touch = e.touches[0];
+      
+      // Update the drag ghost position to follow the touch
+      setDragPosition({ 
+        x: touch.clientX, 
+        y: touch.clientY 
+      });
+      
+      // Check if we're over the equation container
+      if (equationRef.current) {
+        const equationRect = equationRef.current.getBoundingClientRect();
+        
+        if (
+          touch.clientX >= equationRect.left && 
+          touch.clientX <= equationRect.right &&
+          touch.clientY >= equationRect.top && 
+          touch.clientY <= equationRect.bottom
+        ) {
+          // If touch is over the equation container
+          const verticalPos = equationRect.height / 2;
+          
+          // If equation is empty, center the preview
+          if (equation.length === 0) {
+            setDropTargetIndex(0);
+            setDropPosition({
+              left: equationRect.width / 2,
+              top: verticalPos
+            });
+            return;
+          }
+          
+          // Get all equation items
+          const items = Array.from(equationRef.current.querySelectorAll('.equation-item:not(.preview-item)'));
+          
+          if (items.length === 0) {
+            setDropTargetIndex(0);
+            setDropPosition({
+              left: equationRect.width / 2,
+              top: verticalPos
+            });
+            return;
+          }
+          
+          // Find where to insert based on touch position
+          let foundPosition = false;
+          
+          // Check if we should insert at the beginning (before the first item)
+          const firstItemRect = items[0].getBoundingClientRect();
+          if (touch.clientX < firstItemRect.left - 15) { // Add a bit of buffer space
+            setDropTargetIndex(0);
+            // Place at the beginning with more space to prevent overlap
+            setDropPosition({
+              left: firstItemRect.left - equationRect.left - 40,
+              top: verticalPos
+            });
+            foundPosition = true;
+          } 
+          // Check if we should insert at the end (after the last item)
+          else {
+            const lastItemRect = items[items.length - 1].getBoundingClientRect();
+            if (touch.clientX > lastItemRect.right + 15) {
+              setDropTargetIndex(equation.length);
+              setDropPosition({
+                left: lastItemRect.right - equationRect.left + 40,
+                top: verticalPos
+              });
+              foundPosition = true;
+            }
+          }
+          
+          // If not at beginning or end, find position between items
+          if (!foundPosition) {
+            for (let i = 0; i < items.length - 1; i++) {
+              const currentRect = items[i].getBoundingClientRect();
+              const nextRect = items[i + 1].getBoundingClientRect();
+              
+              // Calculate the gap between items
+              const gapStart = currentRect.right;
+              const gapEnd = nextRect.left;
+              
+              if (touch.clientX >= gapStart && touch.clientX <= gapEnd) {
+                // Position is between these two items
+                setDropTargetIndex(i + 1);
+                setDropPosition({
+                  left: (currentRect.right - equationRect.left + nextRect.left - equationRect.left) / 2,
+                  top: verticalPos
+                });
+                foundPosition = true;
+                break;
+              }
+            }
+          }
+          
+          // If we determined a drop position, show the preview
+          if (foundPosition) {
+            setShowDragPreview(true);
+          } else {
+            setShowDragPreview(false);
+            setDropTargetIndex(null);
+          }
+        } else {
+          // Not over equation, hide preview
+          setShowDragPreview(false);
+          setDropTargetIndex(null);
+          
+          // Check if we're over the trash
+          const trashElem = document.querySelector('.trash-can');
+          if (trashElem) {
+            const trashRect = trashElem.getBoundingClientRect();
+            if (
+              touch.clientX >= trashRect.left &&
+              touch.clientX <= trashRect.right &&
+              touch.clientY >= trashRect.top &&
+              touch.clientY <= trashRect.bottom
+            ) {
+              setDragTrashActive(true);
+            } else {
+              setDragTrashActive(false);
+            }
+          }
+        }
+      }
+    };
+
+    const handleTouchEnd = (e) => {
+      if (!dragging) return;
+      
+      // We'll create a synthetic mouse event with the last touch position
+      let lastTouch = null;
+      if (e.changedTouches && e.changedTouches.length > 0) {
+        lastTouch = e.changedTouches[0];
+      }
+      
+      if (!lastTouch && dragPosition) {
+        // If we don't have a touch but have a drag position, use that
+        lastTouch = { clientX: dragPosition.x, clientY: dragPosition.y };
+      }
+      
+      if (lastTouch) {
+        // Create a synthetic mouse event
+        const syntheticEvent = {
+          clientX: lastTouch.clientX,
+          clientY: lastTouch.clientY,
+          preventDefault: () => {},
+          stopPropagation: () => {}
+        };
+        
+        // Use the existing mouse up handler
+        handleMouseUp(syntheticEvent);
+      } else {
+        // Fallback - reset drag state
+        setDragging(false);
+        setDraggedItem(null);
+        setDraggedType(null);
+        setDragPosition(null);
+        setDragOffset({ x: 0, y: 0 });
+        setDropTargetIndex(null);
+        setShowDragPreview(false);
+        setDragTrashActive(false);
+      }
+    };
+
+    // Add the touch event listeners with passive: false to allow preventDefault()
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleTouchEnd);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [dragging, dragPosition, equation, handleMouseUp]);
 
   return (
     <div className={`game-container ${darkMode ? 'dark-mode' : ''}`}>

@@ -1048,9 +1048,39 @@
   }
   
   .card, .operation-button, .equation-item {
-    /* Increase touch target size for mobile */
+    /* Ensure minimum touch target size for accessibility */
     min-height: 44px;
     min-width: 44px;
+  }
+  
+  /* Make cards smaller on mobile */
+  .card {
+    width: 65px;
+    height: 91px;
+    margin: 3px;
+  }
+  
+  .card-center-suit {
+    font-size: 1.5rem;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  
+  .card-corner {
+    font-size: 0.9rem;
+    padding: 4px;
+  }
+  
+  .top-left {
+    top: 2px;
+    left: 2px;
+  }
+  
+  .bottom-right {
+    bottom: 2px;
+    right: 2px;
   }
   
   /* Remove hover effects on touch devices */
@@ -1069,26 +1099,32 @@
     box-shadow: 0 2px 4px var(--card-shadow);
   }
   
-  /* Increase the size of operation buttons for easier touch */
+  /* Make operation buttons smaller */
   .operations-container {
-    gap: 16px;
+    gap: 10px;
   }
   
   .operation-button {
-    width: 60px;
-    height: 60px;
-    font-size: 1.5rem;
+    width: 50px;
+    height: 50px;
+    font-size: 1.3rem;
   }
   
   /* Make the equation area more touch-friendly */
   .equation {
-    padding: 20px;
-    min-height: 80px;
+    padding: 15px;
+    min-height: 70px;
   }
   
   .equation-item {
-    margin: 0 8px;
-    padding: 10px 15px;
+    margin: 0 6px;
+    padding: 8px 12px;
+    font-size: 1.1rem;
+  }
+  
+  /* Adjust the cards container for smaller cards */
+  .cards-container {
+    gap: 8px;
   }
 }
 
@@ -1106,17 +1142,68 @@
 
 @media (max-width: 480px) {
   .game-title {
-    font-size: 2rem;
+    font-size: 1.8rem;
   }
   
   .mode-dropdown {
-    min-width: 180px;
-    font-size: 0.9rem;
-    padding: 8px 30px 8px 14px;
+    padding: 6px 30px 6px 12px;
+    font-size: 0.85rem;
   }
   
   .dropdown-arrow {
-    right: 12px;
+    font-size: 0.8rem;
+  }
+  
+  /* Make cards even smaller on phones */
+  .card {
+    width: 55px;
+    height: 77px;
+    margin: 2px;
+  }
+  
+  .card-center-suit {
+    font-size: 1.3rem;
+  }
+  
+  .card-corner {
+    font-size: 0.8rem;
+    padding: 2px;
+  }
+  
+  .top-left {
+    top: 1px;
+    left: 1px;
+  }
+  
+  .bottom-right {
+    bottom: 1px;
+    right: 1px;
+  }
+  
+  /* Make operation buttons even smaller on phones */
+  .operation-button {
+    width: 45px;
+    height: 45px;
+    font-size: 1.2rem;
+  }
+  
+  .operations-container {
+    gap: 8px;
+  }
+  
+  /* Adjust the equation items */
+  .equation-item {
+    margin: 0 4px;
+    padding: 6px 10px;
+    font-size: 1rem;
+  }
+  
+  /* Adjust the play cards section */
+  .play-cards-section h3,
+  .operations-row h3,
+  .equation-display h3 {
+    font-size: 1.2rem;
+    margin-bottom: 5px;
   }
 }
 

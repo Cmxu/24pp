@@ -2,6 +2,7 @@
   "name": "react-template",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "dependencies": {
     "expr-eval": "^2.0.2",
     "react": "^18.2.0",

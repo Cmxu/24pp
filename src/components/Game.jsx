@@ -377,10 +377,18 @@ const WelcomeModal = ({ isOpen, onClose, onSelectMode, onShowInstructions }) => 
     onShowInstructions();
   };
 
+  // Format today's date for display
+  const formatTodayDate = () => {
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const today = new Date();
+    return today.toLocaleDateString('en-US', options);
+  };
+
   return (
     <div className="modal-overlay" onClick={(e) => {
       if (e.target.className === 'modal-overlay') {
-        onClose();
+        // Start daily challenge when clicking outside
+        onSelectMode('daily');
       }
     }}>
       <div className="modal-content welcome-modal">
@@ -391,26 +399,26 @@ const WelcomeModal = ({ isOpen, onClose, onSelectMode, onShowInstructions }) => 
           
           <div className="game-mode-buttons">
             <button 
-              className="game-mode-button daily-mode" 
+              className="game-mode-button daily-mode rectangular-btn" 
               onClick={() => onSelectMode('daily')}
             >
               <span className="mode-icon">🗓️</span>
               <span className="mode-title">Daily Challenge</span>
-              <span className="mode-description">Same puzzle for everyone today</span>
+              <span className="mode-description">Solve today's puzzle ({formatTodayDate()})!</span>
             </button>
 
             <button 
-              className="game-mode-button unlimited-mode" 
+              className="game-mode-button unlimited-mode rectangular-btn" 
               onClick={() => onSelectMode('unlimited')}
             >
               <span className="mode-icon">♾️</span>
               <span className="mode-title">Unlimited Play</span>
-              <span className="mode-description">New random puzzles anytime</span>
+              <span className="mode-description">Play unlimited puzzles!</span>
             </button>
           </div>
           
           <button 
-            className="how-to-play-button"
+            className="how-to-play-button rectangular-btn"
             onClick={handleShowInstructions}
           >
             How to Play
@@ -554,6 +562,13 @@ const SolvedModal = ({ isOpen, onClose, targetNumber, equation, onRedeal, gameMo
     }));
   };
 
+  // Format today's date for display
+  const formatTodayDate = () => {
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const today = new Date();
+    return today.toLocaleDateString('en-US', options);
+  };
+
   // Call the debug function
   logEquationItems();
 
@@ -580,6 +595,38 @@ const SolvedModal = ({ isOpen, onClose, targetNumber, equation, onRedeal, gameMo
       }
     });
     return count;
+  };
+
+  // Get the completion message for sharing
+  const getCompletionMessage = () => {
+    if (gameMode === 'daily') {
+      return `I completed the daily 24++ on ${formatTodayDate()} in ${countOperations()} operations!`;
+    }
+    return `I solved a 24++ puzzle using ${countOperations()} operations!`;
+  };
+
+  // Copy completion message to clipboard
+  const copyToClipboard = () => {
+    const button = document.querySelector('.copy-message-btn');
+    
+    navigator.clipboard.writeText(getCompletionMessage())
+      .then(() => {
+        // Show visual feedback
+        button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+        button.style.color = '#4CAF50';
+        
+        // Reset after a short delay
+        setTimeout(() => {
+          button.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M5.50280381,4.62704038 L5.5,6.75 L5.5,17.2542087 C5.5,19.0491342 6.95507456,20.5042087 8.75,20.5042087 L17.3662868,20.5044622 C17.057338,21.3782241 16.2239751,22.0042087 15.2444057,22.0042087 L8.75,22.0042087 C6.12664744,22.0042087 4,19.8775613 4,17.2542087 L4,6.75 C4,5.76928848 4.62744523,4.93512464 5.50280381,4.62704038 Z M17.75,2 C18.9926407,2 20,3.00735931 20,4.25 L20,17.25 C20,18.4926407 18.9926407,19.5 17.75,19.5 L8.75,19.5 C7.50735931,19.5 6.5,18.4926407 6.5,17.25 L6.5,4.25 C6.5,3.00735931 7.50735931,2 8.75,2 L17.75,2 Z M17.75,3.5 L8.75,3.5 C8.33578644,3.5 8,3.83578644 8,4.25 L8,17.25 C8,17.6642136 8.33578644,18 8.75,18 L17.75,18 C18.1642136,18 18.5,17.6642136 18.5,17.25 L18.5,4.25 C18.5,3.83578644 18.1642136,3.5 17.75,3.5 Z" />
+          </svg>`;
+          button.style.color = '';
+        }, 2000);
+      })
+      .catch(err => {
+        console.error('Failed to copy: ', err);
+        alert('Failed to copy to clipboard');
+      });
   };
 
   // Render the equation items for display
@@ -626,17 +673,11 @@ const SolvedModal = ({ isOpen, onClose, targetNumber, equation, onRedeal, gameMo
       <div className="modal-content solved-modal">
         <h2>
           {gameMode === 'daily' 
-            ? "Daily Challenge Complete! 🎉" 
+            ? "Daily Completed" 
             : "Puzzle Solved! 🎉"}
         </h2>
         
         <div className="solved-content">
-          <p>
-            {gameMode === 'daily'
-              ? "You've solved today's daily challenge!"
-              : "Great job solving this puzzle!"}
-          </p>
-          
           <div className="solved-equation">
             <div className="equation-solution">
               <h3>Your Solution:</h3>
@@ -646,9 +687,26 @@ const SolvedModal = ({ isOpen, onClose, targetNumber, equation, onRedeal, gameMo
             </div>
           </div>
           
-          <p className="operations-count">
-            Operations used: {countOperations()}
-          </p>
+          {gameMode === 'daily' ? (
+            <div className="daily-completion">
+              <p className="completion-message">
+                {getCompletionMessage()}
+              </p>
+              <button 
+                className="copy-message-btn" 
+                onClick={copyToClipboard}
+                title="Copy to clipboard"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M5.50280381,4.62704038 L5.5,6.75 L5.5,17.2542087 C5.5,19.0491342 6.95507456,20.5042087 8.75,20.5042087 L17.3662868,20.5044622 C17.057338,21.3782241 16.2239751,22.0042087 15.2444057,22.0042087 L8.75,22.0042087 C6.12664744,22.0042087 4,19.8775613 4,17.2542087 L4,6.75 C4,5.76928848 4.62744523,4.93512464 5.50280381,4.62704038 Z M17.75,2 C18.9926407,2 20,3.00735931 20,4.25 L20,17.25 C20,18.4926407 18.9926407,19.5 17.75,19.5 L8.75,19.5 C7.50735931,19.5 6.5,18.4926407 6.5,17.25 L6.5,4.25 C6.5,3.00735931 7.50735931,2 8.75,2 L17.75,2 Z M17.75,3.5 L8.75,3.5 C8.33578644,3.5 8,3.83578644 8,4.25 L8,17.25 C8,17.6642136 8.33578644,18 8.75,18 L17.75,18 C18.1642136,18 18.5,17.6642136 18.5,17.25 L18.5,4.25 C18.5,3.83578644 18.1642136,3.5 17.75,3.5 Z" />
+                </svg>
+              </button>
+            </div>
+          ) : (
+            <p className="operations-count">
+              Operations used: {countOperations()}
+            </p>
+          )}
           
           <div className="solved-actions">
             {gameMode === 'unlimited' && (
@@ -674,21 +732,15 @@ const SolvedModal = ({ isOpen, onClose, targetNumber, equation, onRedeal, gameMo
 };
 
 const Game = () => {
-  // Basic state
-  const [targetNumber, setTargetNumber] = useState(null);
+  // State for cards and gameplay
   const [playCards, setPlayCards] = useState([]);
   const [targetCards, setTargetCards] = useState([]);
-  const [selectedCardIndices, setSelectedCardIndices] = useState([]);
+  const [targetNumber, setTargetNumber] = useState(24);
   const [equation, setEquation] = useState([]);
   const [result, setResult] = useState(null);
   const [message, setMessage] = useState('');
-  const [hasWon, setHasWon] = useState(false);
+  const [selectedCardIndices, setSelectedCardIndices] = useState([]);
   const [unmatchedParenIndices, setUnmatchedParenIndices] = useState(new Set());
-  const [darkMode, setDarkMode] = useState(false);
-  
-  // Game mode state
-  const [gameMode, setGameMode] = useState(null);
-  const [isWelcomeOpen, setIsWelcomeOpen] = useState(true);
   
   // Drag and drop state
   const [dragging, setDragging] = useState(false);
@@ -698,52 +750,30 @@ const Game = () => {
   const [dragPosition, setDragPosition] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [dropTargetIndex, setDropTargetIndex] = useState(null);
-  const [dropPosition, setDropPosition] = useState(null); // Position for the preview
-  const equationRef = useRef(null);
+  const [dropPosition, setDropPosition] = useState(null);
+  const [isDropping, setIsDropping] = useState(false);
   
-  // Add state for modals
-  const [isInstructionsOpen, setIsInstructionsOpen] = useState(false);
+  // Game state
+  const [hasWon, setHasWon] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+  const [gameMode, setGameMode] = useState(null);
+  
+  // UI state
+  const [showDragPreview, setShowDragPreview] = useState(false);
+  const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(true);
+  const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState(false);
   const [isSolvedModalOpen, setIsSolvedModalOpen] = useState(false);
+  const [confettiActive, setConfettiActive] = useState(false);
+  const [dailyPlayed, setDailyPlayed] = useState(false);
+  const [dailyStreak, setDailyStreak] = useState(0);
+  const [streakDate, setStreakDate] = useState('');
+  const [dragTrashActive, setDragTrashActive] = useState(false);
+  const [dragGhostVisible, setDragGhostVisible] = useState(false);
+  
+  // Refs
+  const equationRef = useRef(null);
 
-  // Reference for win sound effect
-  const winSoundRef = useRef(null);
-  
-  // Check for localStorage preferences on first load
-  useEffect(() => {
-    const savedDarkMode = localStorage.getItem('darkMode');
-    if (savedDarkMode) {
-      setDarkMode(savedDarkMode === 'true');
-    }
-    
-    // Check if already played daily
-    const lastDailyDate = localStorage.getItem('lastDailyDate');
-    const currentDate = new Date().toDateString();
-    
-    // If they've already chosen a mode today, load that mode
-    const savedGameMode = localStorage.getItem('gameMode');
-    if (savedGameMode) {
-      setGameMode(savedGameMode);
-      setIsWelcomeOpen(false);
-      
-      // Start the game with the saved mode
-      if (savedGameMode === 'daily') {
-        startDailyGame();
-      } else {
-        startUnlimitedGame();
-      }
-    }
-  }, []);
-  
-  // Effect to handle dark mode
-  useEffect(() => {
-    if (darkMode) {
-      document.body.classList.add('dark-mode');
-    } else {
-      document.body.classList.remove('dark-mode');
-    }
-  }, [darkMode]);
-  
-  // Function to find unmatched parentheses
+  // Find unmatched parentheses in the equation
   const findUnmatchedParentheses = (equation) => {
     const stack = [];
     const unmatched = new Set();
@@ -780,7 +810,7 @@ const Game = () => {
     localStorage.setItem('gameMode', mode);
     
     // Close welcome modal
-    setIsWelcomeOpen(false);
+    setIsWelcomeModalOpen(false);
     
     // Start the appropriate game
     if (mode === 'daily') {
@@ -791,7 +821,7 @@ const Game = () => {
   };
   
   // Start a daily game with seeded randomness
-  const startDailyGame = () => {
+  const startDailyGame = useCallback(() => {
     const dailySeed = getDailySeed();
     
     // Create and shuffle deck with seed
@@ -819,10 +849,10 @@ const Game = () => {
     
     // Save today's date
     localStorage.setItem('lastDailyDate', new Date().toDateString());
-  };
+  }, []);
   
   // Start an unlimited game (random)
-  const startUnlimitedGame = () => {
+  const startUnlimitedGame = useCallback(() => {
     // Create and shuffle deck randomly
     let deck = createDeck();
     deck = shuffleDeck(deck);
@@ -843,12 +873,12 @@ const Game = () => {
     setSelectedCardIndices([]);
     setEquation([]);
     setResult(null);
-    setMessage('Use all 7 cards and operations to create the goal number!');
+    setMessage('Unlimited Mode: Make the target number with any combination of cards and operations!');
     setHasWon(false);
-  };
+  }, []);
   
   // Renamed original startGame
-  const redealGame = () => {
+  const redealGame = useCallback(() => {
     if (gameMode === 'daily') {
       startDailyGame();
     } else {
@@ -865,7 +895,7 @@ const Game = () => {
     setDragPosition(null);
     setDropTargetIndex(null);
     setDropPosition(null);
-  };
+  }, [gameMode, startDailyGame, startUnlimitedGame]);
 
   // Handle drag start
   const handleDragStart = (type, item, sourceIndex, e) => {
@@ -882,6 +912,7 @@ const Game = () => {
     
     console.log("Starting drag:", type, item, sourceIndex);
     
+    // Store drag information
     setDraggedType(type);
     setDraggedItem(item);
     setDraggedSourceIndex(sourceIndex);
@@ -914,14 +945,13 @@ const Game = () => {
     if (equationRef.current) {
       const equationRect = equationRef.current.getBoundingClientRect();
       
-      // If mouse is over the equation container
       if (
-        e.clientX >= equationRect.left &&
+        e.clientX >= equationRect.left && 
         e.clientX <= equationRect.right &&
-        e.clientY >= equationRect.top &&
+        e.clientY >= equationRect.top && 
         e.clientY <= equationRect.bottom
       ) {
-        // Calculate the vertical position (always in the middle of the equation container)
+        // If mouse is over the equation container
         const verticalPos = equationRect.height / 2;
         
         // If equation is empty, center the preview
@@ -1135,7 +1165,7 @@ const Game = () => {
     setDropTargetIndex(null);
     setDropPosition(null);
   }, [dragging, equation, dropTargetIndex, draggedType, draggedItem, draggedSourceIndex, selectedCardIndices]);
-  
+
   // Set up event listeners for dragging
   useEffect(() => {
     if (dragging) {
@@ -1180,7 +1210,7 @@ const Game = () => {
   };
 
   // Handle backspace to remove the last equation item
-  const handleBackspace = () => {
+  const handleBackspace = useCallback(() => {
     if (equation.length === 0) return;
     
     // Get the last item
@@ -1198,7 +1228,7 @@ const Game = () => {
       
       console.log("Card removed with backspace, making index available again:", lastItem.originalIndex);
     }
-  };
+  }, [equation, setEquation, setSelectedCardIndices]);
 
   // Update win condition to show modal and play sound
   const checkWinCondition = useCallback(() => {
@@ -1260,7 +1290,7 @@ const Game = () => {
   }, [equation, checkWinCondition]);
 
   // Add handleCardClick function
-  const handleCardClick = (index) => {
+  const handleCardClick = useCallback((index) => {
     // If card is already selected, find it in the equation and remove it
     if (selectedCardIndices.includes(index)) {
       // Find the card in the equation
@@ -1299,10 +1329,10 @@ const Game = () => {
       // Add the index to selectedCardIndices
       setSelectedCardIndices([...selectedCardIndices, index]);
     }
-  };
+  }, [equation, selectedCardIndices, playCards, setEquation, setSelectedCardIndices]);
 
   // Handle operation button click - add to equation
-  const handleOperationClick = (operation) => {
+  const handleOperationClick = useCallback((operation) => {
     // Map stylized symbols back to their functional counterparts
     const functionalOperation = (op) => {
       switch (op) {
@@ -1314,7 +1344,7 @@ const Game = () => {
 
     // Add the operation to the end of the equation
     setEquation([...equation, functionalOperation(operation)]);
-  };
+  }, [equation, setEquation]);
 
   // Toggle dark mode
   const toggleDarkMode = () => {
@@ -1322,6 +1352,139 @@ const Game = () => {
     setDarkMode(newMode);
     localStorage.setItem('darkMode', newMode.toString());
   };
+  
+  // Apply dark mode to body
+  useEffect(() => {
+    if (darkMode) {
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode');
+    }
+  }, [darkMode]);
+
+  // Add keyboard event handlers
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      // Skip if any modal is open
+      if (isWelcomeModalOpen || isInstructionsModalOpen || isSolvedModalOpen) {
+        return;
+      }
+
+      const key = event.key.toLowerCase();
+      
+      // Number keys (0-9)
+      if (!isNaN(parseInt(key)) || key === '0') {
+        // Find the first available card with the matching number
+        const targetValue = key === '0' ? 10 : parseInt(key);
+        
+        // Look for a card that has that value and is not selected
+        const availableCardIndex = playCards.findIndex((card, index) => {
+          // For 0 key, match any face card (value > 10) or 10
+          const matchesValue = key === '0' 
+            ? (card.value === 10 || card.value > 10) 
+            : card.value === targetValue;
+          
+          return matchesValue && !selectedCardIndices.includes(index);
+        });
+        
+        if (availableCardIndex !== -1) {
+          handleCardClick(availableCardIndex);
+        }
+      }
+      
+      // Face card keys (t, j, q, k)
+      else if (key === 't') {
+        // Find the first available 10 card
+        const availableCardIndex = playCards.findIndex((card, index) => 
+          card.value === 10 && !selectedCardIndices.includes(index)
+        );
+        
+        if (availableCardIndex !== -1) {
+          handleCardClick(availableCardIndex);
+        }
+      }
+      else if (key === 'j') {
+        // Find the first available Jack (11)
+        const availableCardIndex = playCards.findIndex((card, index) => 
+          card.value === 11 && !selectedCardIndices.includes(index)
+        );
+        
+        if (availableCardIndex !== -1) {
+          handleCardClick(availableCardIndex);
+        }
+      }
+      else if (key === 'q') {
+        // Find the first available Queen (12)
+        const availableCardIndex = playCards.findIndex((card, index) => 
+          card.value === 12 && !selectedCardIndices.includes(index)
+        );
+        
+        if (availableCardIndex !== -1) {
+          handleCardClick(availableCardIndex);
+        }
+      }
+      else if (key === 'k') {
+        // Find the first available King (13)
+        const availableCardIndex = playCards.findIndex((card, index) => 
+          card.value === 13 && !selectedCardIndices.includes(index)
+        );
+        
+        if (availableCardIndex !== -1) {
+          handleCardClick(availableCardIndex);
+        }
+      }
+      
+      // Backspace key
+      else if (key === 'backspace') {
+        handleBackspace();
+      }
+      
+      // Redeal in unlimited mode (r key)
+      else if (key === 'r' && gameMode === 'unlimited') {
+        redealGame();
+      }
+      
+      // Operation keys
+      else if (key === '+') {
+        handleOperationClick('+');
+      }
+      else if (key === '-') {
+        handleOperationClick('-');
+      }
+      else if (key === '*' || key === 'x') {
+        handleOperationClick('×');
+      }
+      else if (key === '/') {
+        handleOperationClick('÷');
+      }
+      else if (key === '(') {
+        handleOperationClick('(');
+      }
+      else if (key === ')') {
+        handleOperationClick(')');
+      }
+    };
+    
+    // Add event listener
+    window.addEventListener('keydown', handleKeyDown);
+    
+    // Remove event listener on cleanup
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [
+    playCards, 
+    selectedCardIndices, 
+    equation, 
+    gameMode, 
+    isWelcomeModalOpen, 
+    isInstructionsModalOpen, 
+    isSolvedModalOpen,
+    handleCardClick,
+    handleBackspace,
+    redealGame,
+    handleOperationClick
+  ]);
 
   // Add game mode UI to the header
   const renderModeIndicator = () => {
@@ -1371,7 +1534,7 @@ const Game = () => {
         <div className="header-buttons">
           <button 
             className="instructions-button"
-            onClick={() => setIsInstructionsOpen(true)}
+            onClick={() => setIsInstructionsModalOpen(true)}
             title="How to Play"
           >
             <span className="instructions-icon">❓</span>
@@ -1596,16 +1759,16 @@ const Game = () => {
 
       {/* Welcome Modal - render first (lowest in stack) */}
       <WelcomeModal 
-        isOpen={isWelcomeOpen}
-        onClose={() => setIsWelcomeOpen(false)}
+        isOpen={isWelcomeModalOpen}
+        onClose={() => setIsWelcomeModalOpen(false)}
         onSelectMode={handleModeSelection}
-        onShowInstructions={() => setIsInstructionsOpen(true)}
+        onShowInstructions={() => setIsInstructionsModalOpen(true)}
       />
       
       {/* Instructions Modal - render last (highest in stack) */}
       <InstructionsModal 
-        isOpen={isInstructionsOpen}
-        onClose={() => setIsInstructionsOpen(false)}
+        isOpen={isInstructionsModalOpen}
+        onClose={() => setIsInstructionsModalOpen(false)}
       />
       
       {/* Solved Modal */}

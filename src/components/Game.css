@@ -1901,7 +1901,7 @@
 }
 
 .dark-mode .solved-equation {
-  background-color: rgba(60, 60, 60, 0.6);
+  background-color: #2a2a2a;
 }
 
 .dark-mode .continue-btn {
@@ -2016,19 +2016,24 @@
 }
 
 .how-to-play-button {
-  padding: 12px 24px;
+  padding: 15px 24px;
   font-size: 1rem;
-  background-color: var(--bg-secondary);
+  background-color: var(--card-bg);
   color: var(--text-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 50px;
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 5px;
 }
 
 .how-to-play-button:hover {
   background-color: var(--bg-primary);
-  transform: translateY(-2px);
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 /* Dark mode adjustments */
@@ -2175,7 +2180,7 @@
 }
 
 .play-unlimited-btn {
-  background: linear-gradient(135deg, #4895ef, #3a0ca3);
+  background: linear-gradient(135deg, #4cc9f0, #3a86ff);
   color: white;
   font-weight: bold;
   font-family: 'Poppins', sans-serif;
@@ -2191,7 +2196,7 @@
 }
 
 .play-unlimited-btn:hover {
-  background: linear-gradient(135deg, #4cc9f0, #4361ee);
+  background: linear-gradient(135deg, #90e0ef, #4895ef);
   transform: translateY(-3px);
   box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
 }
@@ -2202,12 +2207,12 @@
 }
 
 .dark-mode .play-unlimited-btn {
-  background: linear-gradient(135deg, #ff9800, #b45309);
+  background: linear-gradient(135deg, #4a9bb0, #0e334e);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .dark-mode .play-unlimited-btn:hover {
-  background: linear-gradient(135deg, #ffb74d, #d97706);
+  background: linear-gradient(135deg, #60b5ca, #1b4965);
   box-shadow: 0 6px 8px rgba(0, 0, 0, 0.4);
 }
 
@@ -2246,4 +2251,78 @@
 .dark-mode .action-button:hover {
   background: linear-gradient(135deg, #60b5ca, #1b4965);
   box-shadow: 0 6px 8px rgba(0, 0, 0, 0.4);
+}
+
+.rectangular-btn {
+  border-radius: 4px !important;  /* More rectangular shape */
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.rectangular-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.daily-completion {
+  margin-top: 20px;
+  background-color: white;
+  padding: 15px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  text-align: center;
+  position: relative;
+}
+
+.completion-message {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.copy-message-btn {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background-color: transparent;
+  color: var(--accent-primary);
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 8px;
+}
+
+.copy-message-btn svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+.copy-message-btn:hover {
+  background-color: rgba(76, 201, 240, 0.1);
+  transform: translateY(0);
+}
+
+.dark-mode .daily-completion {
+  background-color: var(--card-bg);
+  border-color: var(--border-color);
+}
+
+.dark-mode .completion-message {
+  color: var(--text-primary);
+}
+
+.dark-mode .copy-message-btn {
+  color: var(--accent-primary);
+}
+
+.dark-mode .copy-message-btn:hover {
+  background-color: rgba(76, 201, 240, 0.1);
 } 

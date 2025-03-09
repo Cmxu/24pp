@@ -2080,7 +2080,7 @@ const Game = () => {
 
       {/* Credits */}
       <div className="credits">
-        Created by <a href="https://cmxu.io" target="_blank" rel="noopener noreferrer">Calvin Xu</a> and <a href="https://anthropic.com" target="_blank" rel="noopener noreferrer">Claude</a>
+        Created by <a href="https://cmxu.io" target="_blank" rel="noopener noreferrer">Calvin Xu</a> and <a href="https://anthropic.com" target="_blank" rel="noopener noreferrer">Claude</a>. V1.1 - Mobile optimizations coming soon!
       </div>
 
       {/* Confetti overlay - repositioned to render on top of modals */}

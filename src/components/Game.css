@@ -1053,7 +1053,7 @@
     min-width: 44px;
   }
   
-  /* Make cards smaller on mobile */
+  /* Simplify cards on mobile */
   .card {
     width: 65px;
     height: 91px;
@@ -1068,19 +1068,33 @@
     transform: translate(-50%, -50%);
   }
   
+  /* Hide card corners on mobile, only show center suit */
   .card-corner {
-    font-size: 0.9rem;
-    padding: 4px;
+    display: none;
   }
   
-  .top-left {
-    top: 2px;
-    left: 2px;
+  /* Make equation items smaller */
+  .equation-display {
+    margin-bottom: 15px;
+    padding: 10px;
   }
   
-  .bottom-right {
-    bottom: 2px;
-    right: 2px;
+  .equation-display h3 {
+    font-size: 1.3rem;
+    margin-bottom: 8px;
+  }
+  
+  .equation {
+    padding: 12px;
+    min-height: 60px;
+    border-radius: 8px;
+  }
+  
+  .equation-item {
+    margin: 0 4px;
+    padding: 5px 8px;
+    font-size: 1rem;
+    border-radius: 6px;
   }
   
   /* Remove hover effects on touch devices */
@@ -1108,30 +1122,6 @@
     width: 50px;
     height: 50px;
     font-size: 1.3rem;
-  }
-  
-  /* Make the equation area more compact */
-  .equation-display {
-    margin-bottom: 15px;
-    padding: 10px;
-  }
-  
-  .equation-display h3 {
-    font-size: 1.3rem;
-    margin-bottom: 8px;
-  }
-  
-  .equation {
-    padding: 12px;
-    min-height: 60px;
-    border-radius: 8px;
-  }
-  
-  .equation-item {
-    margin: 0 5px;
-    padding: 6px 10px;
-    font-size: 1.1rem;
-    border-radius: 6px;
   }
   
   /* Smaller result display */
@@ -1183,7 +1173,7 @@
     font-size: 0.8rem;
   }
   
-  /* Make cards even smaller on phones */
+  /* Even smaller cards on phones */
   .card {
     width: 55px;
     height: 77px;
@@ -1194,19 +1184,9 @@
     font-size: 1.3rem;
   }
   
+  /* Hide card corners even on small phones */
   .card-corner {
-    font-size: 0.8rem;
-    padding: 2px;
-  }
-  
-  .top-left {
-    top: 1px;
-    left: 1px;
-  }
-  
-  .bottom-right {
-    bottom: 1px;
-    right: 1px;
+    display: none;
   }
   
   /* Make operation buttons even smaller on phones */
@@ -1232,38 +1212,45 @@
   }
   
   .equation {
-    padding: 8px;
-    min-height: 50px;
+    padding: 6px;
+    min-height: 45px;
   }
   
   .equation-item {
-    margin: 0 3px;
-    padding: 4px 8px;
-    font-size: 0.9rem;
-    border-radius: 5px;
+    margin: 0 2px;
+    padding: 3px 6px;
+    font-size: 0.8rem;
+    border-radius: 4px;
+    min-width: 20px;
+    min-height: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
   
   /* Smaller empty equation placeholder */
   .empty-equation {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
   }
   
   /* Smaller result display */
   .result {
     margin-top: 8px;
-    font-size: 1rem;
+    font-size: 0.9rem;
     padding: 4px 8px;
   }
   
-  /* Even smaller drag ghosts and preview items on phones */
+  /* Even smaller ghost items and preview items */
   .ghost-item, .preview-item {
-    font-size: 0.9rem;
-    padding: 4px 8px;
-    border-radius: 5px;
+    font-size: 0.8rem;
+    padding: 3px 6px;
+    border-radius: 4px;
+    min-width: 20px;
+    min-height: 20px;
   }
   
   .preview-item-wrapper {
-    height: 2rem;
+    height: 1.8rem;
   }
   
   /* Adjust headers for consistency */

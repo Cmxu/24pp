@@ -1110,33 +1110,62 @@
     font-size: 1.3rem;
   }
   
-  /* Make the equation area more touch-friendly */
+  /* Make the equation area more compact */
+  .equation-display {
+    margin-bottom: 15px;
+    padding: 10px;
+  }
+  
+  .equation-display h3 {
+    font-size: 1.3rem;
+    margin-bottom: 8px;
+  }
+  
   .equation {
-    padding: 15px;
-    min-height: 70px;
+    padding: 12px;
+    min-height: 60px;
+    border-radius: 8px;
   }
   
   .equation-item {
-    margin: 0 6px;
-    padding: 8px 12px;
+    margin: 0 5px;
+    padding: 6px 10px;
     font-size: 1.1rem;
+    border-radius: 6px;
+  }
+  
+  /* Smaller result display */
+  .result {
+    margin-top: 10px;
+    font-size: 1.1rem;
+    padding: 6px 10px;
   }
   
   /* Adjust the cards container for smaller cards */
   .cards-container {
     gap: 8px;
   }
-}
-
-/* Fix iOS-specific touch issues */
-@supports (-webkit-touch-callout: none) {
-  .card, .operation-button, .equation-item {
-    /* Disable callout on iOS */
-    -webkit-touch-callout: none;
-    /* Disable user selection on iOS */
-    -webkit-user-select: none;
-    /* Prevent default touch behaviors */
-    -webkit-tap-highlight-color: transparent;
+  
+  /* Smaller drag ghosts and preview items */
+  .ghost-item, .preview-item {
+    font-size: 1.1rem;
+    padding: 6px 10px;
+    border-radius: 6px;
+  }
+  
+  .preview-item-wrapper {
+    height: 2.5rem;
+  }
+  
+  /* Smaller action buttons */
+  .action-buttons {
+    gap: 10px;
+    margin-top: 10px;
+  }
+  
+  .action-buttons button {
+    padding: 8px 14px;
+    font-size: 0.9rem;
   }
 }
 
@@ -1191,19 +1220,83 @@
     gap: 8px;
   }
   
-  /* Adjust the equation items */
-  .equation-item {
-    margin: 0 4px;
-    padding: 6px 10px;
-    font-size: 1rem;
+  /* Make equation elements even smaller on phones */
+  .equation-display {
+    padding: 8px;
+    margin-bottom: 10px;
   }
   
-  /* Adjust the play cards section */
-  .play-cards-section h3,
-  .operations-row h3,
   .equation-display h3 {
-    font-size: 1.2rem;
-    margin-bottom: 5px;
+    font-size: 1.1rem;
+    margin-bottom: 6px;
+  }
+  
+  .equation {
+    padding: 8px;
+    min-height: 50px;
+  }
+  
+  .equation-item {
+    margin: 0 3px;
+    padding: 4px 8px;
+    font-size: 0.9rem;
+    border-radius: 5px;
+  }
+  
+  /* Smaller empty equation placeholder */
+  .empty-equation {
+    font-size: 0.9rem;
+  }
+  
+  /* Smaller result display */
+  .result {
+    margin-top: 8px;
+    font-size: 1rem;
+    padding: 4px 8px;
+  }
+  
+  /* Even smaller drag ghosts and preview items on phones */
+  .ghost-item, .preview-item {
+    font-size: 0.9rem;
+    padding: 4px 8px;
+    border-radius: 5px;
+  }
+  
+  .preview-item-wrapper {
+    height: 2rem;
+  }
+  
+  /* Adjust headers for consistency */
+  .play-cards-section h3,
+  .operations-row h3 {
+    font-size: 1.1rem;
+    margin-bottom: 6px;
+  }
+  
+  /* Even smaller action buttons on phones */
+  .action-buttons {
+    gap: 8px;
+    margin-top: 8px;
+  }
+  
+  .action-buttons button {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+  }
+  
+  /* Make trash can smaller */
+  .trash-can {
+    width: 80px;
+    height: 40px;
+    padding: 5px;
+  }
+  
+  .trash-icon {
+    font-size: 1.1rem;
+  }
+  
+  .trash-text {
+    font-size: 0.8rem;
   }
 }
 
@@ -2470,3 +2563,15 @@
 .dark-mode .copy-message-btn:hover {
   background-color: rgba(76, 201, 240, 0.1);
 } 
+
+/* Fix iOS-specific touch issues */
+@supports (-webkit-touch-callout: none) {
+  .card, .operation-button, .equation-item {
+    /* Disable callout on iOS */
+    -webkit-touch-callout: none;
+    /* Disable user selection on iOS */
+    -webkit-user-select: none;
+    /* Prevent default touch behaviors */
+    -webkit-tap-highlight-color: transparent;
+  }
+}

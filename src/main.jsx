@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import './index.css'
+import './components/mobile-styles.css'  // Import mobile styles
 
 // Add passive touch listeners to improve performance on mobile
 // This helps with scrolling performance while maintaining the ability to preventDefault() when needed

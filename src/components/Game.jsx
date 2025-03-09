@@ -1034,6 +1034,10 @@ const Game = () => {
     setDragOffset({ x: offsetX, y: offsetY });
     setDragPosition({ x: initialX, y: initialY });
     setDragging(true);
+    setDragGhostVisible(true);
+    
+    // Add dragging-active class to body
+    document.body.classList.add('dragging-active');
     
     // Set initial drop target and position for empty equation
     if (equation.length === 0 && equationRef.current) {
@@ -1043,6 +1047,7 @@ const Game = () => {
         left: equationRect.width / 2,
         top: equationRect.height / 2
       });
+      setShowDragPreview(true);
     }
   };
   
@@ -1198,6 +1203,10 @@ const Game = () => {
   // Handle mouse up - finish dragging
   const handleMouseUp = useCallback((e) => {
     if (!dragging) return;
+    
+    // Reset body styles
+    document.body.style.pointerEvents = '';
+    document.body.classList.remove('dragging-active');
     
     // Check if we're over the equation container
     if (equationRef.current) {
@@ -1674,12 +1683,14 @@ const Game = () => {
     const handleTouchMove = (e) => {
       if (!dragging) return;
       
-      // Prevent the default touchmove action only when dragging
-      // This prevents scrolling while dragging but allows normal scrolling otherwise
+      // Always prevent default to stop scrolling during drag
       e.preventDefault();
       
       // Use the first touch
       const touch = e.touches[0];
+      
+      // Add pointer-events: none to the body during drag to prevent touch issues
+      document.body.style.pointerEvents = 'none';
       
       // Update the drag ghost position to follow the touch
       setDragPosition({ 
@@ -1687,6 +1698,10 @@ const Game = () => {
         y: touch.clientY 
       });
       
+      // Enable drag ghost visibility explicitly
+      setDragGhostVisible(true);
+      
+      // Rest of the touch move handling code...
       // Check if we're over the equation container
       if (equationRef.current) {
         const equationRect = equationRef.current.getBoundingClientRect();
@@ -1707,6 +1722,7 @@ const Game = () => {
               left: equationRect.width / 2,
               top: verticalPos
             });
+            setShowDragPreview(true);
             return;
           }
           
@@ -1719,6 +1735,7 @@ const Game = () => {
               left: equationRect.width / 2,
               top: verticalPos
             });
+            setShowDragPreview(true);
             return;
           }
           
@@ -1802,9 +1819,15 @@ const Game = () => {
         }
       }
     };
-
+    
     const handleTouchEnd = (e) => {
       if (!dragging) return;
+      
+      // Re-enable pointer events on body
+      document.body.style.pointerEvents = '';
+      
+      // Remove dragging-active class from body
+      document.body.classList.remove('dragging-active');
       
       // We'll create a synthetic mouse event with the last touch position
       let lastTouch = null;
@@ -1826,31 +1849,104 @@ const Game = () => {
           stopPropagation: () => {}
         };
         
-        // Use the existing mouse up handler
+        // Process the drop
+        if (dropTargetIndex !== null) {
+          // Special handling for drop into equation
+          if (equationRef.current) {
+            const equationRect = equationRef.current.getBoundingClientRect();
+            
+            const isOverEquation = (
+              lastTouch.clientX >= equationRect.left &&
+              lastTouch.clientX <= equationRect.right &&
+              lastTouch.clientY >= equationRect.top &&
+              lastTouch.clientY <= equationRect.bottom
+            );
+            
+            if (isOverEquation) {
+              let newEquation = [...equation];
+              
+              // Process different drag sources
+              if (draggedType === 'card') {
+                console.log("Dropping card:", draggedItem);
+                // For cards, we create an equation-ready card object
+                const cardItem = {
+                  type: 'card',
+                  value: typeof draggedItem === 'object' ? draggedItem.value : draggedItem,
+                  gameValue: typeof draggedItem === 'object' ? draggedItem.gameValue : draggedItem,
+                  display: typeof draggedItem === 'object' ? getDisplayValue(draggedItem.value) : draggedItem,
+                  originalIndex: draggedSourceIndex // Store the original index for later removal
+                };
+                
+                // Insert at the drop target index
+                newEquation.splice(dropTargetIndex, 0, cardItem);
+                
+                // Track selected cards
+                if (draggedSourceIndex !== null && !selectedCardIndices.includes(draggedSourceIndex)) {
+                  setSelectedCardIndices([...selectedCardIndices, draggedSourceIndex]);
+                }
+              } 
+              else if (draggedType === 'operation') {
+                // For operations, we convert to the functional symbols
+                const operationValue = (op) => {
+                  switch (op) {
+                    case '×': return '×';
+                    case '÷': return '÷';
+                    default: return op;
+                  }
+                };
+                
+                // Insert at the drop target index
+                newEquation.splice(dropTargetIndex, 0, operationValue(draggedItem));
+              }
+              
+              // Update the equation state
+              setEquation(newEquation);
+            }
+          }
+        }
+        
+        // Check for trash can drop
+        if (dragTrashActive) {
+          if (draggedType === 'equation-item') {
+            handleRemoveEquationItem(draggedSourceIndex);
+          }
+        }
+        
+        // Use the existing mouse up handler for shared logic
         handleMouseUp(syntheticEvent);
-      } else {
-        // Fallback - reset drag state
-        setDragging(false);
-        setDraggedItem(null);
-        setDraggedType(null);
-        setDragPosition(null);
-        setDragOffset({ x: 0, y: 0 });
-        setDropTargetIndex(null);
-        setShowDragPreview(false);
-        setDragTrashActive(false);
       }
+      
+      // Reset drag state
+      setDragging(false);
+      setDraggedItem(null);
+      setDraggedType(null);
+      setDragPosition(null);
+      setDragOffset({ x: 0, y: 0 });
+      setDropTargetIndex(null);
+      setShowDragPreview(false);
+      setDragTrashActive(false);
+      setDragGhostVisible(false);
     };
 
-    // Add the touch event listeners with passive: false to allow preventDefault()
-    window.addEventListener('touchmove', handleTouchMove, { passive: false });
-    window.addEventListener('touchend', handleTouchEnd);
+    // Add the touch event listeners
+    if (typeof window !== 'undefined') {
+      window.addEventListener('touchmove', handleTouchMove, { passive: false });
+      window.addEventListener('touchend', handleTouchEnd, { passive: false });
+      window.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+      
+      // Cleanup
+      return () => {
+        window.removeEventListener('touchmove', handleTouchMove);
+        window.removeEventListener('touchend', handleTouchEnd);
+        window.removeEventListener('touchcancel', handleTouchEnd);
+        
+        // Reset body style if component unmounts during drag
+        document.body.style.pointerEvents = '';
+      };
+    }
     
-    // Cleanup
-    return () => {
-      window.removeEventListener('touchmove', handleTouchMove);
-      window.removeEventListener('touchend', handleTouchEnd);
-    };
-  }, [dragging, dragPosition, equation, handleMouseUp]);
+    return () => {};
+  }, [dragging, dragPosition, equation, handleMouseUp, draggedItem, draggedType, draggedSourceIndex, dropTargetIndex, dragTrashActive]);
 
   return (
     <div className={`game-container ${darkMode ? 'dark-mode' : ''}`}>
@@ -2080,7 +2176,7 @@ const Game = () => {
 
       {/* Credits */}
       <div className="credits">
-        Created by <a href="https://cmxu.io" target="_blank" rel="noopener noreferrer">Calvin Xu</a> and <a href="https://anthropic.com" target="_blank" rel="noopener noreferrer">Claude</a>. V1.1 - Mobile optimizations coming soon!
+        Created by <a href="https://cmxu.io" target="_blank" rel="noopener noreferrer">Calvin Xu</a> and <a href="https://anthropic.com" target="_blank" rel="noopener noreferrer">Claude</a>. 24++ V1.2 - Mobile optimizations coming soon!
       </div>
 
       {/* Confetti overlay - repositioned to render on top of modals */}

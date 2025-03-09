@@ -1,0 +1,383 @@
+/* Mobile styles for the card game */
+@media (max-width: 768px) {
+  .header-row {
+    flex-direction: column;
+    gap: 15px;
+    align-items: center;
+  }
+  
+  .game-mode-indicator {
+    margin: 5px 0;
+  }
+  
+  .mode-dropdown {
+    min-width: 200px;
+    font-size: 0.9rem;
+    padding: 8px 32px 8px 14px;
+  }
+  
+  .card, .operation-button, .equation-item {
+    /* Ensure minimum touch target size for accessibility */
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Make cards smaller on mobile */
+  .card {
+    width: 65px;
+    height: 91px;
+    margin: 3px;
+  }
+  
+  .card-center-suit {
+    font-size: 1.5rem;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  
+  .card-corner {
+    font-size: 0.9rem;
+    padding: 4px;
+  }
+  
+  /* Hide suit in corners but keep values */
+  .card-corner .card-suit {
+    display: none;
+  }
+  
+  .top-left {
+    top: 2px;
+    left: 2px;
+  }
+  
+  .bottom-right {
+    bottom: 2px;
+    right: 2px;
+  }
+  
+  /* Remove hover effects on touch devices */
+  .card:hover,
+  .operation-button:hover,
+  .equation-item:hover {
+    transform: none;
+    box-shadow: 0 4px 8px var(--card-shadow);
+  }
+  
+  /* Apply active state on touch */
+  .card:active,
+  .operation-button:active,
+  .equation-item:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 4px var(--card-shadow);
+  }
+  
+  /* Make operation buttons smaller */
+  .operations-container {
+    gap: 8px;
+  }
+  
+  .operation-button {
+    width: 45px;
+    height: 45px;
+    font-size: 1.2rem;
+    border-radius: 6px;
+    margin: 2px;
+    padding: 0;
+    box-shadow: 0 2px 4px var(--card-shadow);
+  }
+  
+  /* Make the equation area more compact */
+  .equation-display {
+    margin-bottom: 15px;
+    padding: 10px;
+  }
+  
+  .equation-display h3 {
+    font-size: 1.3rem;
+    margin-bottom: 8px;
+  }
+  
+  /* Make equation area narrower */
+  .equation {
+    padding: 10px 8px;
+    min-height: 60px;
+    border-radius: 8px;
+    width: 95%;
+    margin: 0 auto;
+  }
+  
+  /* Make equation items less wide */
+  .equation-item {
+    margin: 0 3px;
+    padding: 5px 6px;
+    font-size: 1rem;
+    border-radius: 6px;
+    min-width: auto; /* Remove minimum width */
+  }
+  
+  .equation-item.operation, 
+  .equation-item.parenthesis {
+    font-size: 1rem;
+    padding: 5px 6px;
+    min-width: auto;
+  }
+  
+  /* Smaller result display */
+  .result {
+    margin-top: 10px;
+    font-size: 1.1rem;
+    padding: 6px 10px;
+  }
+  
+  /* Adjust the cards container for smaller cards */
+  .cards-container {
+    gap: 8px;
+  }
+  
+  /* Smaller drag ghosts and preview items */
+  .ghost-item, .preview-item {
+    font-size: 1.1rem;
+    padding: 6px 10px;
+    border-radius: 6px;
+  }
+  
+  .preview-item-wrapper {
+    height: 2.5rem;
+  }
+  
+  /* Smaller action buttons */
+  .action-buttons {
+    gap: 10px;
+    margin-top: 10px;
+  }
+  
+  .action-buttons button {
+    padding: 8px 14px;
+    font-size: 0.9rem;
+  }
+  
+  /* Make trash can smaller */
+  .trash-can {
+    width: 80px;
+    height: 40px;
+    padding: 5px;
+  }
+  
+  .trash-icon {
+    font-size: 1.1rem;
+  }
+  
+  .trash-text {
+    font-size: 0.8rem;
+  }
+  
+  /* Make drag ghost more visible */
+  .drag-ghost-container {
+    z-index: 1000;
+    pointer-events: none;
+    transform: scale(1.1);
+    opacity: 0.9;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  }
+  
+  /* Add a highlight effect to show active dragging */
+  .dragging-active {
+    background-color: rgba(76, 201, 240, 0.1);
+  }
+  
+  /* Make operations row and container more compact */
+  .operations-row {
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 8px;
+  }
+  
+  .operations-container {
+    gap: 8px;
+    padding: 5px;
+  }
+  
+  /* Reduce space between sections */
+  .play-cards-section {
+    padding: 15px;
+    margin-bottom: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .game-title {
+    font-size: 1.8rem;
+  }
+  
+  .mode-dropdown {
+    padding: 6px 30px 6px 12px;
+    font-size: 0.85rem;
+  }
+  
+  .dropdown-arrow {
+    font-size: 0.8rem;
+  }
+  
+  /* Make cards even smaller on phones */
+  .card {
+    width: 55px;
+    height: 77px;
+    margin: 2px;
+  }
+  
+  .card-center-suit {
+    font-size: 1.3rem;
+  }
+  
+  .card-corner {
+    font-size: 0.8rem;
+    padding: 2px;
+  }
+  
+  .top-left {
+    top: 1px;
+    left: 1px;
+  }
+  
+  .bottom-right {
+    bottom: 1px;
+    right: 1px;
+  }
+  
+  /* Even more compact operations area for phones */
+  .operations-row {
+    padding: 6px;
+    margin-top: 6px;
+    border-radius: 6px;
+  }
+  
+  .operations-container {
+    gap: 4px;
+    padding: 2px;
+  }
+  
+  /* Much smaller operation buttons with minimal borders */
+  .operation-button {
+    width: 38px;
+    height: 38px;
+    font-size: 1rem;
+    border-radius: 4px;
+    margin: 1px;
+    padding: 0;
+    box-shadow: 0 1px 3px var(--card-shadow);
+  }
+  
+  /* Further reduce space between sections */
+  .play-cards-section {
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  
+  /* Make equation area even narrower on phones */
+  .equation-display {
+    padding: 6px;
+    margin-bottom: 8px;
+  }
+  
+  .equation-display h3 {
+    font-size: 1.1rem;
+    margin-bottom: 5px;
+  }
+  
+  /* Fixed width equation box for phones */
+  .equation {
+    padding: 5px 4px;
+    min-height: 40px;
+    width: 95%;
+    border-radius: 6px;
+    margin: 0 auto;
+  }
+  
+  /* Even smaller equation items with minimal horizontal padding */
+  .equation-item {
+    margin: 0 1px;
+    padding: 3px 4px;
+    font-size: 0.85rem;
+    border-radius: 4px;
+    min-width: auto;
+  }
+  
+  .equation-item.number {
+    padding: 3px 4px;
+    min-width: auto;
+  }
+  
+  .equation-item.operation, 
+  .equation-item.parenthesis {
+    font-size: 0.85rem;
+    padding: 3px 4px;
+    margin: 0 1px;
+    min-width: auto;
+  }
+  
+  /* Smaller empty equation placeholder */
+  .empty-equation {
+    font-size: 0.9rem;
+  }
+  
+  /* Smaller result display */
+  .result {
+    margin-top: 8px;
+    font-size: 1rem;
+    padding: 4px 8px;
+  }
+  
+  /* Make drag ghost and preview items match equation items */
+  .ghost-item, .preview-item {
+    font-size: 0.85rem;
+    padding: 3px 4px;
+    border-radius: 4px;
+    min-width: auto;
+  }
+  
+  .preview-item-wrapper {
+    height: 1.8rem;
+  }
+  
+  /* Adjust headers for consistency */
+  .play-cards-section h3,
+  .operations-row h3 {
+    font-size: 1.1rem;
+    margin-bottom: 6px;
+  }
+  
+  /* Even smaller action buttons on phones */
+  .action-buttons {
+    gap: 8px;
+    margin-top: 8px;
+  }
+  
+  .action-buttons button {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+  }
+}
+
+/* Fix iOS-specific touch issues */
+@supports (-webkit-touch-callout: none) {
+  .card, .operation-button, .equation-item {
+    /* Disable callout on iOS */
+    -webkit-touch-callout: none;
+    /* Disable user selection on iOS */
+    -webkit-user-select: none;
+    /* Prevent default touch behaviors */
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  .drag-ghost-container {
+    transform: translate3d(0, 0, 0); /* Force GPU acceleration */
+  }
+  
+  /* Prevent content selection during touch */
+  .card-container, .operations-container, .equation {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+} 

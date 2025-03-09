@@ -146,7 +146,159 @@ const Confetti = ({ active }) => {
 // Draggable Card Component
 const DraggableCard = ({ card, index, isSelected, onDragStart }) => {
   const cardRef = useRef(null);
-  const [isTouchClick, setIsTouchClick] = useState(false);
+  const [touchStartTime, setTouchStartTime] = useState(0);
+  const [touchMoved, setTouchMoved] = useState(false);
+  
+  // Helper function to display correct value for face cards
+  const getDisplayValue = (value) => {
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Parser } from 'expr-eval';
+import './Game.css';
+
+const OPERATIONS = ['+', '-', '×', '÷', '(', ')'];
+
+// Create a seeded random number generator for daily mode
+const seedRandom = (seed) => {
+  const x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+};
+
+// Get a seed based on the current date (resets daily)
+const getDailySeed = () => {
+  const date = new Date();
+  const dateString = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+  let seed = 0;
+  for (let i = 0; i < dateString.length; i++) {
+    seed = ((seed << 5) - seed) + dateString.charCodeAt(i);
+    seed = seed & seed; // Convert to 32bit integer
+  }
+  return Math.abs(seed);
+};
+
+// Create a full deck of cards
+const createDeck = () => {
+  const deck = [];
+  const suits = ['♥', '♦', '♣', '♠'];
+  const values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+  
+  for (let suit of suits) {
+    for (let value of values) {
+      deck.push({
+        value,
+        suit,
+        // Face cards are worth 10 in this game
+        gameValue: value > 10 ? 10 : value
+      });
+    }
+  }
+  
+  return deck;
+};
+
+// Shuffle the deck using Fisher-Yates algorithm
+const shuffleDeck = (deck, isDaily = false, seed = null) => {
+  const shuffled = [...deck];
+  let randomFn = Math.random;
+  
+  // Use seeded random function for daily mode
+  if (isDaily && seed !== null) {
+    let seedValue = seed;
+    randomFn = () => {
+      seedValue = (seedValue * 9301 + 49297) % 233280;
+      return seedValue / 233280;
+    };
+  }
+  
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(randomFn() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
+// Draw cards from the deck
+const drawCards = (deck, count) => {
+  const drawnCards = deck.slice(0, count);
+  const remainingDeck = deck.slice(count);
+  return { drawnCards, remainingDeck };
+};
+
+// Generate target cards (values 1-9 only, no 10s)
+const generateTargetCards = (deck) => {
+  const targetCards = [];
+  let remainingDeck = [...deck];
+  
+  while (targetCards.length < 3) {
+    // Find first card that isn't a 10 value
+    const nonTenIndex = remainingDeck.findIndex(card => card.gameValue !== 10);
+    
+    if (nonTenIndex !== -1) {
+      targetCards.push(remainingDeck[nonTenIndex]);
+      // Remove the card from the deck
+      remainingDeck = [
+        ...remainingDeck.slice(0, nonTenIndex),
+        ...remainingDeck.slice(nonTenIndex + 1)
+      ];
+    } else {
+      // Fallback if somehow no non-10 cards are left
+      break;
+    }
+  }
+  
+  return { targetCards, remainingDeck };
+};
+
+// Simple confetti component
+const Confetti = ({ active }) => {
+  const [pieces, setPieces] = useState([]);
+  
+  useEffect(() => {
+    if (active) {
+      const newPieces = [];
+      const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4CAF50', '#8BC34A', '#CDDC39', '#FFEB3B', '#FFC107', '#FF9800', '#FF5722'];
+      
+      for (let i = 0; i < 100; i++) {
+        newPieces.push({
+          id: i,
+          x: Math.random() * 100,
+          y: -20 - Math.random() * 100,
+          size: Math.random() * 10 + 5,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          speed: Math.random() * 3 + 2
+        });
+      }
+      
+      setPieces(newPieces);
+    } else {
+      setPieces([]);
+    }
+  }, [active]);
+  
+  if (!active) return null;
+  
+  return (
+    <div className="confetti-container">
+      {pieces.map(piece => (
+        <div 
+          key={piece.id} 
+          className="confetti-piece"
+          style={{
+            left: `${piece.x}%`,
+            top: `${piece.y}%`,
+            width: `${piece.size}px`,
+            height: `${piece.size}px`,
+            backgroundColor: piece.color,
+            animation: `fall ${piece.speed}s linear forwards`
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
+// Draggable Card Component
+const DraggableCard = ({ card, index, isSelected, onDragStart }) => {
+  const cardRef = useRef(null);
   
   // Helper function to display correct value for face cards
   const getDisplayValue = (value) => {
@@ -160,16 +312,9 @@ const DraggableCard = ({ card, index, isSelected, onDragStart }) => {
   };
 
   // Add click handler for card selection
-  const handleClick = (e) => {
-    // If this was triggered by a touch event that we're handling separately, ignore
-    if (isTouchClick) {
-      setIsTouchClick(false);
-      return;
-    }
-    
+  const handleClick = () => {
     if (window.game && typeof window.game.handleCardClick === 'function') {
-      // Pass the card and index to the handleCardClick function
-      window.game.handleCardClick(index, card);
+      window.game.handleCardClick(index);
     }
   };
 
@@ -193,84 +338,37 @@ const DraggableCard = ({ card, index, isSelected, onDragStart }) => {
     const element = cardRef.current;
     if (!element) return;
     
-    let touchStartTime = 0;
-    let touchMoved = false;
-    let initialTouch = null;
-    
     const handleTouchStart = (e) => {
       if (isSelected) return; // Already used, can't drag
       
-      // Don't immediately prevent default, so we can detect clicks
+      e.preventDefault();
+      e.stopPropagation();
       
-      // Record touch start time and reset moved flag
-      touchStartTime = Date.now();
-      touchMoved = false;
-      initialTouch = {
-        x: e.touches[0].clientX,
-        y: e.touches[0].clientY
+      const touch = e.touches[0];
+      const rect = element.getBoundingClientRect();
+      const offsetX = touch.clientX - rect.left;
+      const offsetY = touch.clientY - rect.top;
+      
+      // Create a synthetic event with clientX and clientY from the touch
+      const syntheticEvent = {
+        preventDefault: () => {},
+        stopPropagation: () => {},
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        currentTarget: element,
+        target: e.target
       };
+      
+      // Call parent component's onDragStart
+      onDragStart('card', card, index, syntheticEvent);
     };
     
-    const handleTouchMove = (e) => {
-      if (isSelected) return;
-      
-      // Calculate distance moved
-      if (initialTouch) {
-        const dx = e.touches[0].clientX - initialTouch.x;
-        const dy = e.touches[0].clientY - initialTouch.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        // If we've moved significantly, it's a drag
-        if (distance > 10) {
-          touchMoved = true;
-          e.preventDefault(); // Now prevent default to stop scrolling
-          
-          const touch = e.touches[0];
-          const rect = element.getBoundingClientRect();
-          const offsetX = touch.clientX - rect.left;
-          const offsetY = touch.clientY - rect.top;
-          
-          // Create a synthetic event with clientX and clientY from the touch
-          const syntheticEvent = {
-            preventDefault: () => {},
-            stopPropagation: () => {},
-            clientX: touch.clientX,
-            clientY: touch.clientY,
-            currentTarget: element,
-            target: e.target
-          };
-          
-          // Call parent component's onDragStart
-          onDragStart('card', card, index, syntheticEvent);
-        }
-      }
-    };
-    
-    const handleTouchEnd = (e) => {
-      if (isSelected) return;
-      
-      // If touch duration was short and didn't move much, it's a tap
-      const touchDuration = Date.now() - touchStartTime;
-      
-      if (!touchMoved && touchDuration < 300) {
-        setIsTouchClick(true);
-        // It's a tap/click, handle it as a click
-        if (window.game && typeof window.game.handleCardClick === 'function') {
-          window.game.handleCardClick(index);
-        }
-      }
-    };
-    
-    // Add the event listeners with passive: false to allow preventDefault()
-    element.addEventListener('touchstart', handleTouchStart, { passive: true });
-    element.addEventListener('touchmove', handleTouchMove, { passive: false });
-    element.addEventListener('touchend', handleTouchEnd, { passive: true });
+    // Add the event listener with passive: false to allow preventDefault()
+    element.addEventListener('touchstart', handleTouchStart, { passive: false });
     
     // Clean up
     return () => {
       element.removeEventListener('touchstart', handleTouchStart);
-      element.removeEventListener('touchmove', handleTouchMove);
-      element.removeEventListener('touchend', handleTouchEnd);
     };
   }, [card, index, isSelected, onDragStart]);
 
@@ -298,7 +396,6 @@ const DraggableCard = ({ card, index, isSelected, onDragStart }) => {
 // Draggable Operation Button
 const DraggableOperation = ({ operation, onDragStart }) => {
   const operationRef = useRef(null);
-  const [isTouchClick, setIsTouchClick] = useState(false);
   
   const handleMouseDown = (e) => {
     if (e.button !== 0) return; // Only accept left mouse button
@@ -315,13 +412,7 @@ const DraggableOperation = ({ operation, onDragStart }) => {
   };
   
   // Add click handler for operation selection
-  const handleClick = (e) => {
-    // If this was triggered by a touch event that we're handling separately, ignore
-    if (isTouchClick) {
-      setIsTouchClick(false);
-      return;
-    }
-    
+  const handleClick = () => {
     if (window.game && typeof window.game.handleOperationClick === 'function') {
       window.game.handleOperationClick(operation);
     }
@@ -332,78 +423,35 @@ const DraggableOperation = ({ operation, onDragStart }) => {
     const element = operationRef.current;
     if (!element) return;
     
-    let touchStartTime = 0;
-    let touchMoved = false;
-    let initialTouch = null;
-    
     const handleTouchStart = (e) => {
-      // Don't immediately prevent default, so we can detect clicks
+      e.preventDefault();
+      e.stopPropagation();
       
-      // Record touch start time and reset moved flag
-      touchStartTime = Date.now();
-      touchMoved = false;
-      initialTouch = {
-        x: e.touches[0].clientX,
-        y: e.touches[0].clientY
+      const touch = e.touches[0];
+      const rect = element.getBoundingClientRect();
+      const offsetX = touch.clientX - rect.left;
+      const offsetY = touch.clientY - rect.top;
+      
+      // Create a synthetic event with clientX and clientY from the touch
+      const syntheticEvent = {
+        preventDefault: () => {},
+        stopPropagation: () => {},
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        currentTarget: element,
+        target: e.target
       };
-    };
-    
-    const handleTouchMove = (e) => {
-      // Calculate distance moved
-      if (initialTouch) {
-        const dx = e.touches[0].clientX - initialTouch.x;
-        const dy = e.touches[0].clientY - initialTouch.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        // If we've moved significantly, it's a drag
-        if (distance > 10) {
-          touchMoved = true;
-          e.preventDefault(); // Now prevent default to stop scrolling
-          
-          const touch = e.touches[0];
-          const rect = element.getBoundingClientRect();
-          const offsetX = touch.clientX - rect.left;
-          const offsetY = touch.clientY - rect.top;
-          
-          // Create a synthetic event with clientX and clientY from the touch
-          const syntheticEvent = {
-            preventDefault: () => {},
-            stopPropagation: () => {},
-            clientX: touch.clientX,
-            clientY: touch.clientY,
-            currentTarget: element,
-            target: e.target
-          };
-          
-          // Call parent component's onDragStart
-          onDragStart('operation', operation, null, syntheticEvent);
-        }
-      }
-    };
-    
-    const handleTouchEnd = (e) => {
-      // If touch duration was short and didn't move much, it's a tap
-      const touchDuration = Date.now() - touchStartTime;
       
-      if (!touchMoved && touchDuration < 300) {
-        setIsTouchClick(true);
-        // It's a tap/click, handle it as a click
-        if (window.game && typeof window.game.handleOperationClick === 'function') {
-          window.game.handleOperationClick(operation);
-        }
-      }
+      // Call parent component's onDragStart
+      onDragStart('operation', operation, null, syntheticEvent);
     };
     
-    // Add the event listeners with passive: false to allow preventDefault()
-    element.addEventListener('touchstart', handleTouchStart, { passive: true });
-    element.addEventListener('touchmove', handleTouchMove, { passive: false });
-    element.addEventListener('touchend', handleTouchEnd, { passive: true });
+    // Add the event listener with passive: false to allow preventDefault()
+    element.addEventListener('touchstart', handleTouchStart, { passive: false });
     
     // Clean up
     return () => {
       element.removeEventListener('touchstart', handleTouchStart);
-      element.removeEventListener('touchmove', handleTouchMove);
-      element.removeEventListener('touchend', handleTouchEnd);
     };
   }, [operation, onDragStart]);
   
@@ -431,7 +479,6 @@ const DraggableOperation = ({ operation, onDragStart }) => {
 // Equation Item Component (can be dragged)
 const EquationItem = ({ item, index, onDragStart, onClick }) => {
   const itemRef = useRef(null);
-  const [isTouchClick, setIsTouchClick] = useState(false);
   
   let itemClass = '';
   let displayValue = item;
@@ -459,95 +506,38 @@ const EquationItem = ({ item, index, onDragStart, onClick }) => {
     onDragStart(item, index, 'equation-item', e.clientX, e.clientY, offsetX, offsetY, index);
   };
   
-  const handleClick = (e) => {
-    // If this was triggered by a touch event that we're handling separately, ignore
-    if (isTouchClick) {
-      setIsTouchClick(false);
-      return;
-    }
-    
-    // Regular click handler
-    if (onClick) {
-      onClick(index);
-    }
-  };
-  
   // Add touch event listeners using refs instead of props
   useEffect(() => {
     const element = itemRef.current;
     if (!element) return;
     
-    let touchStartTime = 0;
-    let touchMoved = false;
-    let initialTouch = null;
-    
     const handleTouchStart = (e) => {
-      // Don't immediately prevent default to allow clicks
+      e.preventDefault();
       
-      // Record touch start time and reset moved flag
-      touchStartTime = Date.now();
-      touchMoved = false;
-      initialTouch = {
-        x: e.touches[0].clientX,
-        y: e.touches[0].clientY
-      };
-    };
-    
-    const handleTouchMove = (e) => {
-      // Calculate distance moved
-      if (initialTouch) {
-        const dx = e.touches[0].clientX - initialTouch.x;
-        const dy = e.touches[0].clientY - initialTouch.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        // If we've moved significantly, it's a drag
-        if (distance > 10) {
-          touchMoved = true;
-          e.preventDefault(); // Now prevent default to stop scrolling
-          
-          const touch = e.touches[0];
-          const rect = element.getBoundingClientRect();
-          const offsetX = touch.clientX - rect.left;
-          const offsetY = touch.clientY - rect.top;
-          
-          // Call drag start but also pass the index in the equation
-          onDragStart(item, index, 'equation-item', touch.clientX, touch.clientY, offsetX, offsetY, index);
-        }
-      }
-    };
-    
-    const handleTouchEnd = (e) => {
-      // If touch duration was short and didn't move much, it's a tap
-      const touchDuration = Date.now() - touchStartTime;
+      const touch = e.touches[0];
+      const rect = element.getBoundingClientRect();
+      const offsetX = touch.clientX - rect.left;
+      const offsetY = touch.clientY - rect.top;
       
-      if (!touchMoved && touchDuration < 300) {
-        setIsTouchClick(true);
-        // It's a tap/click, handle it as a click
-        if (onClick) {
-          onClick(index);
-        }
-      }
+      // Call drag start but also pass the index in the equation
+      onDragStart(item, index, 'equation-item', touch.clientX, touch.clientY, offsetX, offsetY, index);
     };
     
-    // Add the event listeners
-    element.addEventListener('touchstart', handleTouchStart, { passive: true });
-    element.addEventListener('touchmove', handleTouchMove, { passive: false });
-    element.addEventListener('touchend', handleTouchEnd, { passive: true });
+    // Add the event listener with passive: false to allow preventDefault()
+    element.addEventListener('touchstart', handleTouchStart, { passive: false });
     
     // Clean up
     return () => {
       element.removeEventListener('touchstart', handleTouchStart);
-      element.removeEventListener('touchmove', handleTouchMove);
-      element.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [item, index, onDragStart, onClick]);
+  }, [item, index, onDragStart]);
   
   return (
     <span 
       ref={itemRef}
       className={`equation-item ${itemClass}`}
       onMouseDown={handleMouseDown}
-      onClick={handleClick}
+      onClick={onClick}
     >
       {displayValue}
     </span>
@@ -1601,30 +1591,9 @@ const Game = () => {
   }, [equation, checkWinCondition]);
 
   // Handle card click - add to equation or remove if already selected
-  const handleCardClick = useCallback((index, card) => {
+  const handleCardClick = useCallback((index) => {
     if (selectedCardIndices.includes(index)) {
-      // Card is already selected, find it in the equation and remove it
-      const newEquation = [...equation];
-      let foundIndex = -1;
-      
-      // Find the card in the equation by its originalIndex
-      for (let i = 0; i < newEquation.length; i++) {
-        const item = newEquation[i];
-        if (typeof item === 'object' && 
-            item.type === 'card' && 
-            item.originalIndex === index) {
-          foundIndex = i;
-          break;
-        }
-      }
-      
-      // If found, remove it from the equation
-      if (foundIndex !== -1) {
-        newEquation.splice(foundIndex, 1);
-        setEquation(newEquation);
-      }
-      
-      // Remove the card from the selected cards
+      // Deselect the card
       setSelectedCardIndices(selectedCardIndices.filter(i => i !== index));
     } else {
       // Select the card and add to equation
@@ -1632,7 +1601,7 @@ const Game = () => {
       const cardItem = {
         type: 'card',
         value: card.value,
-        gameValue: card.value > 10 ? 10 : card.value, // Face cards (J, Q, K) are worth 10
+        gameValue: card.value,
         display: getDisplayValue(card.value),
         originalIndex: index
       };
@@ -1999,8 +1968,8 @@ const Game = () => {
           setShowDragPreview(false);
           setDropTargetIndex(null);
           
-          // Check if we're over the trash button
-          const trashElem = document.querySelector('[data-trash-target="true"]');
+          // Check if we're over the trash
+          const trashElem = document.querySelector('.trash-can');
           if (trashElem) {
             const trashRect = trashElem.getBoundingClientRect();
             if (
@@ -2107,17 +2076,6 @@ const Game = () => {
         if (dragTrashActive) {
           if (draggedType === 'equation-item') {
             handleRemoveEquationItem(draggedSourceIndex);
-          } else if (draggedType === 'card' && draggedSourceIndex !== null && selectedCardIndices.includes(draggedSourceIndex)) {
-            // Find the card in the equation by originalIndex
-            const equationIndex = equation.findIndex(item => 
-              typeof item === 'object' && 
-              item.type === 'card' && 
-              item.originalIndex === draggedSourceIndex
-            );
-            
-            if (equationIndex !== -1) {
-              handleRemoveEquationItem(equationIndex);
-            }
           }
         }
         
@@ -2353,25 +2311,10 @@ const Game = () => {
               onClick={clearEquation}
               title="Clear all"
               aria-label="Clear equation"
-              className={`trash-button ${dragTrashActive ? 'active' : ''}`}
-              data-trash-target="true"
+              className="trash-button"
             >
               🗑️
             </button>
-            
-            {/* Hidden div for trash can detection during drag */}
-            <div 
-              className="trash-can" 
-              style={{ 
-                display: 'none', 
-                position: 'absolute', 
-                top: 0, 
-                left: 0, 
-                width: '100%', 
-                height: '100%', 
-                pointerEvents: 'none' 
-              }}
-            ></div>
           </div>
         </div>
       </div>
@@ -2387,7 +2330,7 @@ const Game = () => {
 
       {/* Credits */}
       <div className="credits">
-        V1.3 - Created by <a href="https://cmxu.io" target="_blank" rel="noopener noreferrer">Calvin Xu</a> with <a href="https://anthropic.com" target="_blank" rel="noopener noreferrer">Claude</a>.
+        Created by <a href="https://cmxu.io" target="_blank" rel="noopener noreferrer">Calvin Xu</a> and <a href="https://anthropic.com" target="_blank" rel="noopener noreferrer">Claude</a>. 24++ V1.2 - Mobile optimizations coming soon!
       </div>
 
       {/* Confetti overlay - repositioned to render on top of modals */}

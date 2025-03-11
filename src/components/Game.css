@@ -902,12 +902,29 @@
 
 /* Header row with title and instructions button */
 .header-row {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
+  gap: 10px;
   margin-bottom: 20px;
   padding-bottom: 10px;
   border-bottom: 1px solid var(--border-color);
+}
+
+.game-title {
+  grid-column: 1;
+}
+
+.game-mode-indicator {
+  grid-column: 2;
+  justify-self: center;
+}
+
+.header-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
 }
 
 .game-title {
@@ -977,28 +994,38 @@
   gap: 10px;
 }
 
-.instructions-button, .theme-toggle {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+/* Updating the instructions button to match settings button style */
+.instructions-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.5rem;
+  color: var(--text-primary);
+  transition: transform 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-  font-size: 1.2rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  padding: 8px;
+  border-radius: 50%;
 }
 
-.instructions-button:hover, .theme-toggle:hover {
-  background-color: var(--bg-primary);
-  transform: translateY(-2px);
+.instructions-button:hover {
+  transform: rotate(30deg);
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dark-mode .instructions-button {
+  color: var(--text-primary);
+}
+
+.dark-mode .instructions-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .instructions-icon {
-  font-size: 1.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Dark mode adjustments */
@@ -1025,15 +1052,6 @@
   filter: brightness(1.1);
 }
 
-.dark-mode .instructions-button, 
-.dark-mode .theme-toggle {
-  background-color: var(--bg-primary);
-}
-
-.dark-mode .instructions-button:hover, 
-.dark-mode .theme-toggle:hover {
-  background-color: rgba(45, 45, 45, 0.8);
-}
 
 /* Mobile responsiveness */
 @media (max-width: 768px) {
@@ -1340,8 +1358,7 @@
 /* Enhanced Instructions Modal Styles */
 .instructions-modal {
   max-width: 650px;
-  max-height: 85vh;
-  overflow-y: auto;
+  overflow: hidden; /* Change to hidden to prevent double scrollbars */
 }
 
 .instructions-modal h2 {
@@ -1357,10 +1374,14 @@
 }
 
 .instructions-content {
+  max-height: calc(85vh - 6rem); /* Adjusted to account for header and padding */
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 25px;
-  padding: 0 10px;
+  gap: 6px;
+  padding: 0 8px 16px 8px; /* Added bottom padding for better spacing */
+  margin-right: -8px;
+  padding-right: 16px;
 }
 
 .instructions-content section {
@@ -2332,4 +2353,620 @@
 
 .dark-mode .copy-message-btn:hover {
   background-color: rgba(76, 201, 240, 0.1);
+}
+
+/* Game type toggle */
+.game-type-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin: 0 0 0 auto;
+  padding-right: 10px;
+}
+
+.game-type-button {
+  position: relative;
+  width: 70px;
+  height: 32px;
+  background: var(--bg-secondary);
+  border-radius: 16px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* The switch handle */
+.game-type-button::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 26px;
+  height: 26px;
+  background: var(--accent-primary);
+  border-radius: 50%;
+  transition: transform 0.3s ease, background-color 0.3s ease;
+  z-index: 2;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Active state */
+.game-type-button.active::before {
+  transform: translateX(38px);
+  background: var(--accent-secondary);
+}
+
+/* Text labels */
+.game-type-text {
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: bold;
+  color: var(--text-primary);
+  transition: opacity 0.3s ease;
+  user-select: none;
+}
+
+.game-type-text.left {
+  left: 5px;
+  opacity: 1;
+}
+
+.game-type-text.right {
+  right: 5px;
+  opacity: 0;
+}
+
+.game-type-button.active .game-type-text.left {
+  opacity: 0;
+}
+
+.game-type-button.active .game-type-text.right {
+  opacity: 1;
+}
+
+/* Dark mode styles */
+.dark-mode .game-type-button {
+  background: #444;
+}
+
+/* Media query for mobile */
+@media (max-width: 600px) {
+  .game-type-button {
+    font-size: 0.85rem;
+    padding: 6px 12px;
+  }
+}
+
+/* Game types in instructions */
+.game-types {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.game-type {
+  background-color: var(--bg-primary);
+  border-radius: 8px;
+  padding: 12px 15px;
+  box-shadow: 0 2px 4px var(--card-shadow);
+}
+
+.game-type h4 {
+  color: var(--accent-primary);
+  margin: 0 0 8px 0;
+  font-size: 1.1rem;
+}
+
+.game-type p {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.dark-mode .game-type {
+  background-color: #333;
+}
+
+.example-title {
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: var(--accent-primary);
+}
+
+.example-target {
+  margin: 10px 0;
+  font-weight: 600;
+}
+
+.examples {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.example {
+  background-color: var(--bg-primary);
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 2px 4px var(--card-shadow);
+}
+
+.example-solution {
+  margin-top: 10px;
+  font-style: italic;
+}
+
+.dark-mode .example {
+  background-color: #333;
+}
+
+@media (min-width: 768px) {
+  .game-types {
+    flex-direction: row;
+  }
+  
+  .game-type {
+    flex: 1;
+  }
+  
+  .examples {
+    flex-direction: row;
+  }
+  
+  .example {
+    flex: 1;
+  }
+}
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+  .header-row {
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    gap: 10px;
+  }
+  
+  .game-title {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  
+  .header-buttons {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
+  
+  .game-mode-indicator {
+    grid-column: 1 / span 2;
+    grid-row: 2;
+    justify-self: center;
+  }
+}
+
+.instructions-modal .modal-content {
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Settings button and modal */
+.settings-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.5rem;
+  color: var(--text-primary);
+  transition: transform 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 50%;
+}
+
+.settings-button:hover {
+  transform: rotate(30deg);
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dark-mode .settings-button {
+  color: var(--text-primary);
+}
+
+.dark-mode .settings-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Settings Modal Styles - The updated styles below replace these */
+
+.settings-modal {
+  max-width: 450px;
+}
+
+.settings-content {
+  padding: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+}
+
+.setting-row:hover {
+  background-color: var(--bg-secondary);
+}
+
+.setting-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.setting-icon {
+  font-size: 1.2rem;
+}
+
+.setting-name {
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.setting-control {
+  display: flex;
+  align-items: center;
+}
+
+/* Settings Switch */
+.settings-switch {
+  position: relative;
+  width: 70px;
+  height: 32px;
+  background: var(--bg-secondary);
+  border-radius: 16px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* The switch handle */
+.settings-switch::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 26px;
+  height: 26px;
+  background: var(--accent-primary);
+  border-radius: 50%;
+  transition: transform 0.3s ease, background-color 0.3s ease;
+  z-index: 2;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Active state */
+.settings-switch.active::before {
+  transform: translateX(38px);
+  background: var(--accent-secondary);
+}
+
+/* Text labels */
+.switch-text {
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: bold;
+  color: var(--text-primary);
+  transition: opacity 0.3s ease;
+  user-select: none;
+}
+
+.switch-text.left {
+  left: 5px;
+  opacity: 1;
+}
+
+.switch-text.right {
+  right: 5px;
+  opacity: 0;
+}
+
+.settings-switch.active .switch-text.left {
+  opacity: 0;
+}
+
+.settings-switch.active .switch-text.right {
+  opacity: 1;
+}
+
+/* Dark mode styles */
+.dark-mode .settings-switch {
+  background: #444;
+}
+
+.dark-mode .setting-row:hover {
+  background-color: #3a3a3a;
 } 
+
+/* Updated Settings Modal Styles */
+.settings-modal {
+  max-width: 500px;
+  padding-bottom: 1.5rem;
+}
+
+.settings-content {
+  padding: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  transition: background-color 0.2s ease;
+  position: relative;
+}
+
+.setting-row:hover {
+  background-color: var(--bg-secondary);
+}
+
+.setting-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.setting-icon {
+  font-size: 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+}
+
+.setting-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.setting-description {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-left: 8px;
+  font-style: italic;
+  display: none;
+}
+
+.setting-control {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+/* Enhanced Settings Switch */
+.settings-switch {
+  position: relative;
+  width: 80px;
+  height: 34px;
+  background: var(--bg-secondary);
+  border-radius: 17px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* The switch handle */
+.settings-switch::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 28px;
+  height: 28px;
+  background: var(--accent-primary);
+  border-radius: 50%;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.3s ease;
+  z-index: 2;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+/* Active state */
+.settings-switch.active::before {
+  transform: translateX(46px);
+  background: var(--accent-secondary);
+}
+
+/* Text labels */
+.switch-text {
+  position: absolute;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: var(--text-primary);
+  transition: opacity 0.3s ease;
+  user-select: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.switch-text.left {
+  left: 8px;
+  opacity: 1;
+}
+
+.switch-text.right {
+  right: 8px;
+  opacity: 0;
+}
+
+.settings-switch.active .switch-text.left {
+  opacity: 0;
+}
+
+.settings-switch.active .switch-text.right {
+  opacity: 1;
+}
+
+/* Tooltips */
+.tooltip-container {
+  position: relative;
+}
+
+.settings-tooltip {
+  position: absolute;
+  top: -45px;
+  right: 0;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 100;
+  width: max-content;
+  max-width: 200px;
+  border: 1px solid var(--border-color);
+}
+
+.tooltip-container:hover .settings-tooltip {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.settings-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  right: 15px;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid var(--bg-primary);
+}
+
+/* Game Mode Description */
+.game-mode-description {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 12px;
+  background-color: var(--bg-secondary);
+}
+
+.game-mode-description h3 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.mode-explanation-container {
+  position: relative;
+  min-height: 120px;
+}
+
+.mode-explanation {
+  position: absolute;
+  width: 100%;
+  opacity: 0;
+  transform: translateX(20px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+
+.mode-explanation.active {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.mode-explanation h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  color: var(--accent-primary);
+}
+
+.mode-explanation p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+/* Dark mode styles */
+.dark-mode .settings-switch {
+  background: #444;
+}
+
+.dark-mode .setting-row:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.dark-mode .game-mode-description {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.dark-mode .mode-explanation h4 {
+  color: var(--accent-secondary);
+}
+
+/* Responsive styles */
+@media (max-width: 600px) {
+  .settings-modal {
+    max-width: 90%;
+    padding: 1rem;
+  }
+  
+  .settings-tooltip {
+    top: auto;
+    bottom: -45px;
+    max-width: 150px;
+    font-size: 0.8rem;
+    white-space: normal;
+    text-align: center;
+  }
+  
+  .settings-tooltip::after {
+    top: -8px;
+    bottom: auto;
+    border-bottom: 8px solid var(--bg-primary);
+    border-top: none;
+  }
+  
+  .mode-explanation-container {
+    min-height: 160px;
+  }
+}

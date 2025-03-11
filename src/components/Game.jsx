@@ -4,6 +4,8 @@ import './Game.css';
 
 // Instead of loading solvable.json, we'll load compressed_solvable.json
 let compressedSolvableData = null;
+// For the classic 24 game mode
+let solvable24Data = null;
 
 // Load the compressed solvable data asynchronously
 const loadSolvableData = async () => {
@@ -20,8 +22,24 @@ const loadSolvableData = async () => {
   }
 };
 
-// Call this function early to start loading the data
+// Load solvable combinations for the classic 24 game
+const loadSolvable24Data = async () => {
+  try {
+    // Import the solvable 24 combinations
+    const response = await fetch('/solvable_24.json');
+    if (!response.ok) {
+      throw new Error(`Failed to load solvable_24.json: ${response.status} ${response.statusText}`);
+    }
+    solvable24Data = await response.json();
+    console.log('Solvable 24 data loaded successfully');
+  } catch (error) {
+    console.error('Error loading solvable 24 data:', error);
+  }
+};
+
+// Call these functions early to start loading the data
 loadSolvableData();
+loadSolvable24Data();
 
 const OPERATIONS = ['+', '-', '×', '÷', '(', ')'];
 
@@ -226,6 +244,33 @@ const isGameSolvable = (playCards, targetNumber) => {
     console.error("Error checking if game is solvable:", error, {
       playCards,
       targetNumber
+    });
+    // If there's an error, return true to prevent infinite loops
+    return true;
+  }
+};
+
+// Check if a 24 game hand is solvable
+const is24GameSolvable = (playCards) => {
+  try {
+    // If solvable24Data hasn't loaded yet, assume the game is solvable
+    if (!solvable24Data) {
+      console.warn('Solvable 24 data not loaded yet, assuming game is solvable');
+      return true;
+    }
+
+    // Sort the gameValues to check against the list of solvable hands
+    const sortedCardValues = playCards.map(card => card.gameValue).sort((a, b) => a - b);
+    console.log('Sorted card values for 24 game:', sortedCardValues);
+    
+    // Check if this hand exists in our list of solvable hands
+    return solvable24Data.some(hand => 
+      hand.length === sortedCardValues.length && 
+      hand.every((val, idx) => val === sortedCardValues[idx])
+    );
+  } catch (error) {
+    console.error("Error checking if 24 game is solvable:", error, {
+      playCards
     });
     // If there's an error, return true to prevent infinite loops
     return true;
@@ -896,14 +941,24 @@ const InstructionsModal = ({ isOpen, onClose }) => {
       }
     }}>
       <div className="modal-content instructions-modal">
-        <h2>How to Play 24++</h2>
+        <h2>How to Play</h2>
         
         <div className="instructions-content">
           <section className="intro-section">
-            <h3>Goal</h3>
-            <p>Create the target number shown at the top using all 7 cards and mathematical operations.</p>
+            <h3>Choose Your Game Type</h3>
+            <p>You can switch between two game variants using the toggle in the header:</p>
+            <div className="game-types">
+              <div className="game-type">
+                <h4>24 (Classic)</h4>
+                <p>Draw 4 cards and use all of them to make 24 using the four basic operations.</p>
+              </div>
+              <div className="game-type">
+                <h4>24++</h4>
+                <p>A more challenging version where you use 7 cards to make a 3-digit target number.</p>
+              </div>
+            </div>
           </section>
-          
+
           <section className="rules-section">
             <h3>Rules</h3>
             <div className="rules-list">
@@ -979,7 +1034,7 @@ const InstructionsModal = ({ isOpen, onClose }) => {
 };
 
 // Solved Modal Component
-const SolvedModal = ({ isOpen, onClose, targetNumber, equation, onRedeal, gameMode, onPlayUnlimited }) => {
+const SolvedModal = ({ isOpen, onClose, targetNumber, equation, onRedeal, gameMode, gameType, onPlayUnlimited }) => {
   if (!isOpen) return null;
 
   // Helper function to debug equation content
@@ -1000,18 +1055,21 @@ const SolvedModal = ({ isOpen, onClose, targetNumber, equation, onRedeal, gameMo
   // Call the debug function
   logEquationItems();
 
+  // Get the target number based on game type
+  const displayTarget = gameType === '24++' ? targetNumber : 24;
+
   // Convert equation to plain text
   const getEquationText = () => {
     return equation.map(item => {
       if (typeof item === 'object' && item.type === 'card') {
         return item.gameValue;
       } else if (typeof item === 'string') {
-        if (item === '*') return '×';
-        if (item === '/') return '÷';
+        if (item === '×') return '×';
+        if (item === '÷') return '÷';
         return item;
       }
       return item;
-    }).join(' ') + ' = ' + targetNumber;
+    }).join(' ') + ' = ' + displayTarget;
   };
 
   // Count operations used
@@ -1028,71 +1086,34 @@ const SolvedModal = ({ isOpen, onClose, targetNumber, equation, onRedeal, gameMo
   // Get the completion message for sharing
   const getCompletionMessage = () => {
     if (gameMode === 'daily') {
-      return `I completed the daily 24++ on ${formatTodayDate()} in ${countOperations()} operations!`;
+      return `I completed the daily ${gameType} on ${formatTodayDate()} in ${countOperations()} operations!`;
     }
-    return `I solved a 24++ puzzle using ${countOperations()} operations!`;
+    return `I solved a ${gameType} puzzle using ${countOperations()} operations!`;
   };
 
   // Copy completion message to clipboard
   const copyToClipboard = () => {
-    const button = document.querySelector('.copy-message-btn');
+    const message = getCompletionMessage();
     
-    navigator.clipboard.writeText(getCompletionMessage())
-      .then(() => {
-        // Show visual feedback with a simpler, clearer checkmark
-        button.innerHTML = `
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z" fill="#4CAF50"/>
-          </svg>
-        `;
-        
-        // Reset after a short delay
-        setTimeout(() => {
-          button.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M5.50280381,4.62704038 L5.5,6.75 L5.5,17.2542087 C5.5,19.0491342 6.95507456,20.5042087 8.75,20.5042087 L17.3662868,20.5044622 C17.057338,21.3782241 16.2239751,22.0042087 15.2444057,22.0042087 L8.75,22.0042087 C6.12664744,22.0042087 4,19.8775613 4,17.2542087 L4,6.75 C4,5.76928848 4.62744523,4.93512464 5.50280381,4.62704038 Z M17.75,2 C18.9926407,2 20,3.00735931 20,4.25 L20,17.25 C20,18.4926407 18.9926407,19.5 17.75,19.5 L8.75,19.5 C7.50735931,19.5 6.5,18.4926407 6.5,17.25 L6.5,4.25 C6.5,3.00735931 7.50735931,2 8.75,2 L17.75,2 Z M17.75,3.5 L8.75,3.5 C8.33578644,3.5 8,3.83578644 8,4.25 L8,17.25 C8,17.6642136 8.33578644,18 8.75,18 L17.75,18 C18.1642136,18 18.5,17.6642136 18.5,17.25 L18.5,4.25 C18.5,3.83578644 18.1642136,3.5 17.75,3.5 Z" />
-          </svg>`;
-          button.style.color = '';
-        }, 2000);
-      })
-      .catch(err => {
-        console.error('Failed to copy: ', err);
-        alert('Failed to copy to clipboard');
-      });
-  };
-
-  // Render the equation items for display
-  const renderEquationItem = (item, index) => {
-    console.log(`Rendering item at index ${index}:`, item, typeof item);
-    
-    if (typeof item === 'object' && item.type === 'card') {
-      return <span key={index} className="equation-item number">{item.gameValue}</span>;
-    } else if (typeof item === 'number') {
-      return <span key={index} className="equation-item number">{item}</span>;
-    } else if (typeof item === 'string') {
-      // Handle string operations
-      let displaySymbol = item;
-      
-      // Explicit mapping for each symbol to ensure proper display
-      switch(item) {
-        case '*':
-          displaySymbol = '×';
-          break;
-        case '/':
-          displaySymbol = '÷';
-          break;
-        case '×':
-          displaySymbol = '×';
-          break;
-        case '÷':
-          displaySymbol = '÷';
-          break;
-      }
-      
-      return <span key={index} className="equation-item operation">{displaySymbol}</span>;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(message)
+        .then(() => {
+          alert("Copied to clipboard!");
+        })
+        .catch(err => {
+          console.error('Failed to copy: ', err);
+          alert("Couldn't copy to clipboard. Please copy manually.");
+        });
+    } else {
+      // Fallback for older browsers
+      const textArea = document.createElement("textarea");
+      textArea.value = message;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+      alert("Copied to clipboard!");
     }
-    
-    // Fallback for any other type
-    return <span key={index} className="equation-item">{String(item)}</span>;
   };
 
   return (
@@ -1113,7 +1134,14 @@ const SolvedModal = ({ isOpen, onClose, targetNumber, equation, onRedeal, gameMo
             <div className="equation-solution">
               <h3>Your Solution:</h3>
               <div className="equation-text">
-                {getEquationText()}
+                {equation.map(item => {
+                  if (typeof item === 'object' && item.type === 'card') {
+                    return item.display;
+                  } else if (item === '×' || item === '÷' || item === '+' || item === '-' || item === '(' || item === ')') {
+                    return ` ${item} `;
+                  }
+                  return item;
+                }).join('')} = {gameType === '24++' ? targetNumber : 24}
               </div>
             </div>
           </div>
@@ -1162,6 +1190,88 @@ const SolvedModal = ({ isOpen, onClose, targetNumber, equation, onRedeal, gameMo
   );
 };
 
+// Settings Modal Component
+const SettingsModal = ({ isOpen, onClose, darkMode, toggleDarkMode, gameType, toggleGameType }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal-overlay" onClick={(e) => {
+      if (e.target.className === 'modal-overlay') {
+        onClose();
+      }
+    }}>
+      <div className="modal-content settings-modal">
+        <h2>Settings</h2>
+        
+        <div className="settings-content">
+          <div className="setting-row">
+            <div className="setting-label">
+              <span className="setting-icon">{darkMode ? "🌙" : "☀️"}</span>
+              <span className="setting-name">Dark Mode</span>
+            </div>
+            <div className="setting-control">
+              <div className="tooltip-container">
+                <button 
+                  className={`settings-switch ${darkMode ? 'active' : ''}`}
+                  onClick={toggleDarkMode}
+                  aria-label="Toggle dark mode"
+                >
+                  <span className="switch-text left">Off</span>
+                  <span className="switch-text right">On</span>
+                </button>
+                <div className="settings-tooltip">
+                  {darkMode ? "Switch to light mode" : "Switch to dark mode"}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="setting-row">
+            <div className="setting-label">
+              <span className="setting-icon">🎮</span>
+              <span className="setting-name">Game Mode</span>
+              <span className="setting-description">Choose your game mode</span>
+            </div>
+            <div className="setting-control">
+              <div className="tooltip-container">
+                <button 
+                  className={`settings-switch ${gameType === '24' ? 'active' : ''}`}
+                  onClick={toggleGameType}
+                  aria-label="Toggle game type"
+                >
+                  <span className="switch-text left">24++</span>
+                  <span className="switch-text right">24</span>
+                </button>
+                <div className="settings-tooltip">
+                  {gameType === '24' ? 
+                    "Switch to 24++" : 
+                    "Switch to 24"}
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="game-mode-description">
+            <h3>Game Modes Explained:</h3>
+            <div className="mode-explanation-container">
+              <div className={`mode-explanation ${gameType !== '24' ? 'active' : ''}`}>
+                <h4>24++</h4>
+                <p>In 24++, your goal is to create is to create expressions that equal a given three digit number using the seven given cards and mathematical operations.</p>
+              </div>
+              <div className={`mode-explanation ${gameType === '24' ? 'active' : ''}`}>
+                <h4>Classic 24</h4>
+                <p>In the classic 24, your goal is to create expressions that equal exactly 24 using the four given cards and mathematical operations.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <button className="modal-close-x remove-item" onClick={onClose}>×</button>
+      </div>
+    </div>
+  );
+};
+
 const Game = () => {
   // State for cards and gameplay
   const [playCards, setPlayCards] = useState([]);
@@ -1188,12 +1298,14 @@ const Game = () => {
   const [hasWon, setHasWon] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [gameMode, setGameMode] = useState(null);
+  const [gameType, setGameType] = useState('24++'); // New state for game type (24 or 24++)
   
   // UI state
   const [showDragPreview, setShowDragPreview] = useState(false);
   const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(true);
   const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState(false);
   const [isSolvedModalOpen, setIsSolvedModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [confettiActive, setConfettiActive] = useState(false);
   const [dailyPlayed, setDailyPlayed] = useState(false);
   const [dailyStreak, setDailyStreak] = useState(0);
@@ -1250,6 +1362,202 @@ const Game = () => {
       startUnlimitedGame();
     }
   };
+
+  // Toggle game type between 24 and 24++
+  const toggleGameType = useCallback(() => {
+    const newGameType = gameType === '24++' ? '24' : '24++';
+    
+    // Reset game state first to avoid state conflicts
+    setPlayCards([]);
+    setTargetCards([]);
+    setEquation([]);
+    setSelectedCardIndices([]);
+    setResult(null);
+    
+    // Then update the game type
+    setGameType(newGameType);
+    localStorage.setItem('gameType', newGameType);
+    
+    // Create a fresh copy of the game-starting functions to use the updated gameType
+    const startFreshGame = () => {
+      if (gameMode === 'daily') {
+        // Create a new daily game with the new game type
+        let deck, targetCards, remainingDeck, drawnCards, target;
+        let isSolvable = false;
+        let attempts = 0;
+        const maxAttempts = 10;
+        
+        if (newGameType === '24++') {
+          // 24++ game logic
+          while (!isSolvable && attempts < maxAttempts) {
+            attempts++;
+            const dailySeed = getDailySeed() + attempts;
+            
+            // Create and shuffle deck with seed
+            deck = createDeck();
+            deck = shuffleDeck(deck, true, dailySeed);
+            
+            // Generate target cards (values 1-9 only)
+            const targetResult = generateTargetCards(deck);
+            targetCards = targetResult.targetCards;
+            remainingDeck = targetResult.remainingDeck;
+            
+            // Calculate target number (3-digit number from the 3 target cards)
+            target = parseInt(targetCards.map(card => card.gameValue).join(''));
+            
+            // Deal play cards (remaining 7 cards)
+            const cardsResult = drawCards(remainingDeck, 7);
+            drawnCards = cardsResult.drawnCards;
+            
+            // Check if the game is solvable
+            isSolvable = isGameSolvable(drawnCards, target);
+          }
+          
+          // Set the game state
+          setTargetCards(targetCards);
+          setTargetNumber(target);
+          setPlayCards(drawnCards);
+          setMessage('Daily Challenge: Use all 7 cards and operations to create the goal number!');
+        } else {
+          // 24 game logic
+          while (!isSolvable && attempts < maxAttempts) {
+            attempts++;
+            const dailySeed = getDailySeed() + attempts;
+            
+            // Create and shuffle deck with seed
+            deck = createDeck();
+            // For the classic 24 game, filter out face cards
+            const filteredDeck = deck.filter(card => card.value <= 10);
+            deck = shuffleDeck(filteredDeck, true, dailySeed);
+            
+            // Deal 4 cards
+            const cardsResult = drawCards(deck, 4);
+            drawnCards = cardsResult.drawnCards;
+            
+            // Check if the game is solvable
+            isSolvable = is24GameSolvable(drawnCards);
+          }
+          
+          // Set the game state
+          setTargetCards([]);
+          setTargetNumber(24);
+          setPlayCards(drawnCards);
+          setMessage('Daily Challenge (24): Use all 4 cards and operations to make 24!');
+        }
+        
+        setHasWon(false);
+        localStorage.setItem('lastDailyDate', new Date().toDateString());
+      } else {
+        // Create a new unlimited game with the new game type
+        let deck, targetCards, remainingDeck, drawnCards, target;
+        let isSolvable = false;
+        let attempts = 0;
+        const maxAttempts = 10;
+        
+        if (newGameType === '24++') {
+          // 24++ game logic
+          while (!isSolvable && attempts < maxAttempts) {
+            attempts++;
+            
+            // Create and shuffle deck
+            deck = createDeck();
+            deck = shuffleDeck(deck);
+            
+            // Generate target cards
+            const targetResult = generateTargetCards(deck);
+            targetCards = targetResult.targetCards;
+            remainingDeck = targetResult.remainingDeck;
+            
+            // Calculate target number
+            target = parseInt(targetCards.map(card => card.gameValue).join(''));
+            
+            // Deal play cards
+            const cardsResult = drawCards(remainingDeck, 7);
+            drawnCards = cardsResult.drawnCards;
+            
+            // Check if solvable
+            isSolvable = isGameSolvable(drawnCards, target);
+          }
+          
+          // Set game state
+          setTargetCards(targetCards);
+          setTargetNumber(target);
+          setPlayCards(drawnCards);
+          setMessage('Unlimited Mode: Make the target number with any combination of cards and operations!');
+        } else {
+          // 24 game logic
+          while (!isSolvable && attempts < maxAttempts) {
+            attempts++;
+            
+            // Create and shuffle deck
+            deck = createDeck();
+            const filteredDeck = deck.filter(card => card.value <= 10);
+            deck = shuffleDeck(filteredDeck);
+            
+            // Deal 4 cards
+            const cardsResult = drawCards(deck, 4);
+            drawnCards = cardsResult.drawnCards;
+            
+            // Check if solvable
+            isSolvable = is24GameSolvable(drawnCards);
+          }
+          
+          // Set game state
+          setTargetCards([]);
+          setTargetNumber(24);
+          setPlayCards(drawnCards);
+          setMessage('Unlimited Mode (24): Use all 4 cards and operations to make 24!');
+        }
+        
+        setHasWon(false);
+      }
+    };
+    
+    // Start fresh game with short delay
+    setTimeout(startFreshGame, 50);
+  }, [gameType, gameMode]);
+
+  // Load game mode and type from localStorage and start the appropriate game
+  useEffect(() => {
+    const savedGameType = localStorage.getItem('gameType');
+    // Only use the saved type if it's a valid option, otherwise default to '24++'
+    const initialGameType = (savedGameType === '24' || savedGameType === '24++') ? savedGameType : '24++';
+    setGameType(initialGameType);
+    
+    if (!savedGameType || savedGameType !== initialGameType) {
+      localStorage.setItem('gameType', initialGameType);
+    }
+    
+    // Check if we have a saved game mode
+    const savedGameMode = localStorage.getItem('gameMode');
+    if (savedGameMode) {
+      setGameMode(savedGameMode);
+      
+      // Start the game with the appropriate mode and type
+      if (savedGameMode === 'daily') {
+        const lastDailyDate = localStorage.getItem('lastDailyDate');
+        const today = new Date().toDateString();
+        
+        // Check if we've already played today's daily challenge
+        if (lastDailyDate === today) {
+          setDailyPlayed(true);
+        }
+        
+        // Wait for game type to be set before starting the game
+        setTimeout(() => {
+          startDailyGame();
+        }, 100);
+      } else {
+        // Wait for game type to be set before starting the game
+        setTimeout(() => {
+          startUnlimitedGame();
+        }, 100);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // We're intentionally not including startDailyGame and startUnlimitedGame in the dependencies
+    // because this effect should only run once on mount
+  }, []);
   
   // Start a daily game with seeded randomness
   const startDailyGame = useCallback(() => {
@@ -1258,56 +1566,101 @@ const Game = () => {
     let attempts = 0;
     const maxAttempts = 10; // Limit the number of attempts to prevent infinite loops
     
-    while (!isSolvable && attempts < maxAttempts) {
-      attempts++;
-      const dailySeed = getDailySeed() + attempts; // Modify seed slightly for each attempt
-      
-      // Create and shuffle deck with seed
-      deck = createDeck();
-      deck = shuffleDeck(deck, true, dailySeed);
-      
-      // Generate target cards (values 1-9 only)
-      const targetResult = generateTargetCards(deck);
-      targetCards = targetResult.targetCards;
-      remainingDeck = targetResult.remainingDeck;
-      
-      // Calculate target number (3-digit number from the 3 target cards)
-      target = parseInt(targetCards.map(card => card.gameValue).join(''));
-      
-      // Deal play cards (remaining 7 cards)
-      const cardsResult = drawCards(remainingDeck, 7);
-      drawnCards = cardsResult.drawnCards;
-      
-      // Check if the game is solvable
-      isSolvable = isGameSolvable(drawnCards, target);
-      
-      if (isSolvable) {
-        console.log(`Found solvable daily game after ${attempts} attempt(s). Target: ${target}`);
-      } else if (attempts < maxAttempts) {
-        console.log(`Daily game attempt ${attempts} with target ${target} is not solvable with ${drawnCards.map(card => card.gameValue).join(', ')}. Trying again...`);
+    if (gameType === '24++') {
+      // Original 24++ game logic
+      while (!isSolvable && attempts < maxAttempts) {
+        attempts++;
+        const dailySeed = getDailySeed() + attempts; // Modify seed slightly for each attempt
+        
+        // Create and shuffle deck with seed
+        deck = createDeck();
+        deck = shuffleDeck(deck, true, dailySeed);
+        
+        // Generate target cards (values 1-9 only)
+        const targetResult = generateTargetCards(deck);
+        targetCards = targetResult.targetCards;
+        remainingDeck = targetResult.remainingDeck;
+        
+        // Calculate target number (3-digit number from the 3 target cards)
+        target = parseInt(targetCards.map(card => card.gameValue).join(''));
+        
+        // Deal play cards (remaining 7 cards)
+        const cardsResult = drawCards(remainingDeck, 7);
+        drawnCards = cardsResult.drawnCards;
+        
+        // Check if the game is solvable
+        isSolvable = isGameSolvable(drawnCards, target);
+        
+        if (isSolvable) {
+          console.log(`Found solvable daily game after ${attempts} attempt(s). Target: ${target}`);
+        } else if (attempts < maxAttempts) {
+          console.log(`Daily game attempt ${attempts} with target ${target} is not solvable with ${drawnCards.map(card => card.gameValue).join(', ')}. Trying again...`);
+        }
       }
+      
+      // If we couldn't find a solvable game after maxAttempts, use the last generated one anyway
+      if (!isSolvable) {
+        console.warn(`Could not find a solvable daily game after ${maxAttempts} attempts. Using the last generated game.`);
+      }
+      
+      // Set the game state with the solvable game
+      setTargetCards(targetCards);
+      setTargetNumber(target);
+      setPlayCards(drawnCards);
+      
+      // Reset game state
+      setSelectedCardIndices([]);
+      setEquation([]);
+      setResult(null);
+      setMessage('Daily Challenge: Use all 7 cards and operations to create the goal number!');
+      setHasWon(false);
+    } else {
+      // Classic 24 game logic
+      while (!isSolvable && attempts < maxAttempts) {
+        attempts++;
+        const dailySeed = getDailySeed() + attempts; // Modify seed slightly for each attempt
+        
+        // Create and shuffle deck with seed
+        deck = createDeck();
+        // For the classic 24 game, filter out face cards
+        const filteredDeck = deck.filter(card => card.value <= 10);
+        deck = shuffleDeck(filteredDeck, true, dailySeed);
+        
+        // Deal 4 cards
+        const cardsResult = drawCards(deck, 4);
+        drawnCards = cardsResult.drawnCards;
+        
+        // Check if the game is solvable
+        isSolvable = is24GameSolvable(drawnCards);
+        
+        if (isSolvable) {
+          console.log(`Found solvable daily 24 game after ${attempts} attempt(s).`);
+        } else if (attempts < maxAttempts) {
+          console.log(`Daily 24 game attempt ${attempts} is not solvable with ${drawnCards.map(card => card.gameValue).join(', ')}. Trying again...`);
+        }
+      }
+      
+      // If we couldn't find a solvable game after maxAttempts, use the last generated one anyway
+      if (!isSolvable) {
+        console.warn(`Could not find a solvable daily 24 game after ${maxAttempts} attempts. Using the last generated game.`);
+      }
+      
+      // Set the game state with the solvable game
+      setTargetCards([]);
+      setTargetNumber(24);
+      setPlayCards(drawnCards);
+      
+      // Reset game state
+      setSelectedCardIndices([]);
+      setEquation([]);
+      setResult(null);
+      setMessage('Daily Challenge (24): Use all 4 cards and operations to make 24!');
+      setHasWon(false);
     }
-    
-    // If we couldn't find a solvable game after maxAttempts, use the last generated one anyway
-    if (!isSolvable) {
-      console.warn(`Could not find a solvable daily game after ${maxAttempts} attempts. Using the last generated game.`);
-    }
-    
-    // Set the game state with the solvable game
-    setTargetCards(targetCards);
-    setTargetNumber(target);
-    setPlayCards(drawnCards);
-    
-    // Reset game state
-    setSelectedCardIndices([]);
-    setEquation([]);
-    setResult(null);
-    setMessage('Daily Challenge: Use all 7 cards and operations to create the goal number!');
-    setHasWon(false);
     
     // Save today's date
     localStorage.setItem('lastDailyDate', new Date().toDateString());
-  }, []);
+  }, [gameType]);
   
   // Start an unlimited game (random)
   const startUnlimitedGame = useCallback(() => {
@@ -1316,52 +1669,96 @@ const Game = () => {
     let attempts = 0;
     const maxAttempts = 10; // Limit the number of attempts to prevent infinite loops
     
-    while (!isSolvable && attempts < maxAttempts) {
-      attempts++;
-      
-      // Create and shuffle deck randomly
-      deck = createDeck();
-      deck = shuffleDeck(deck);
-      
-      // Generate target cards (values 1-9 only)
-      const targetResult = generateTargetCards(deck);
-      targetCards = targetResult.targetCards;
-      remainingDeck = targetResult.remainingDeck;
-      
-      // Calculate target number (3-digit number from the 3 target cards)
-      target = parseInt(targetCards.map(card => card.gameValue).join(''));
-      
-      // Deal play cards (remaining 7 cards)
-      const cardsResult = drawCards(remainingDeck, 7);
-      drawnCards = cardsResult.drawnCards;
-      
-      // Check if the game is solvable
-      isSolvable = isGameSolvable(drawnCards, target);
-      
-      if (isSolvable) {
-        console.log(`Found solvable unlimited game after ${attempts} attempt(s). Target: ${target}`);
-      } else if (attempts < maxAttempts) {
-        console.log(`Unlimited game attempt ${attempts} with target ${target} is not solvable with ${drawnCards.map(card => card.gameValue).join(', ')}. Trying again...`);
+    if (gameType === '24++') {
+      // Original 24++ game logic
+      while (!isSolvable && attempts < maxAttempts) {
+        attempts++;
+        
+        // Create and shuffle deck randomly
+        deck = createDeck();
+        deck = shuffleDeck(deck);
+        
+        // Generate target cards (values 1-9 only)
+        const targetResult = generateTargetCards(deck);
+        targetCards = targetResult.targetCards;
+        remainingDeck = targetResult.remainingDeck;
+        
+        // Calculate target number (3-digit number from the 3 target cards)
+        target = parseInt(targetCards.map(card => card.gameValue).join(''));
+        
+        // Deal play cards (remaining 7 cards)
+        const cardsResult = drawCards(remainingDeck, 7);
+        drawnCards = cardsResult.drawnCards;
+        
+        // Check if the game is solvable
+        isSolvable = isGameSolvable(drawnCards, target);
+        
+        if (isSolvable) {
+          console.log(`Found solvable unlimited game after ${attempts} attempt(s). Target: ${target}`);
+        } else if (attempts < maxAttempts) {
+          console.log(`Unlimited game attempt ${attempts} with target ${target} is not solvable with ${drawnCards.map(card => card.gameValue).join(', ')}. Trying again...`);
+        }
       }
+      
+      // If we couldn't find a solvable game after maxAttempts, use the last generated one anyway
+      if (!isSolvable) {
+        console.warn(`Could not find a solvable unlimited game after ${maxAttempts} attempts. Using the last generated game.`);
+      }
+      
+      // Set the game state with the solvable game
+      setTargetCards(targetCards);
+      setTargetNumber(target);
+      setPlayCards(drawnCards);
+      
+      // Reset game state
+      setSelectedCardIndices([]);
+      setEquation([]);
+      setResult(null);
+      setMessage('Unlimited Mode: Make the target number with any combination of cards and operations!');
+      setHasWon(false);
+    } else {
+      // Classic 24 game logic
+      while (!isSolvable && attempts < maxAttempts) {
+        attempts++;
+        
+        // Create and shuffle deck randomly
+        deck = createDeck();
+        // For the classic 24 game, filter out face cards
+        const filteredDeck = deck.filter(card => card.value <= 10);
+        deck = shuffleDeck(filteredDeck);
+        
+        // Deal 4 cards
+        const cardsResult = drawCards(deck, 4);
+        drawnCards = cardsResult.drawnCards;
+        
+        // Check if the game is solvable
+        isSolvable = is24GameSolvable(drawnCards);
+        
+        if (isSolvable) {
+          console.log(`Found solvable unlimited 24 game after ${attempts} attempt(s).`);
+        } else if (attempts < maxAttempts) {
+          console.log(`Unlimited 24 game attempt ${attempts} is not solvable with ${drawnCards.map(card => card.gameValue).join(', ')}. Trying again...`);
+        }
+      }
+      
+      // If we couldn't find a solvable game after maxAttempts, use the last generated one anyway
+      if (!isSolvable) {
+        console.warn(`Could not find a solvable unlimited 24 game after ${maxAttempts} attempts. Using the last generated game.`);
+      }
+      
+      // Set the game state with the solvable game
+      setTargetCards([]);
+      setTargetNumber(24);
+      setPlayCards(drawnCards);
+      
+      // Reset game state
+      setSelectedCardIndices([]);
+      setEquation([]);
+      setResult(null);
+      setMessage('Unlimited Mode (24): Use all 4 cards and operations to make 24!');
+      setHasWon(false);
     }
-    
-    // If we couldn't find a solvable game after maxAttempts, use the last generated one anyway
-    if (!isSolvable) {
-      console.warn(`Could not find a solvable unlimited game after ${maxAttempts} attempts. Using the last generated game.`);
-    }
-    
-    // Set the game state with the solvable game
-    setTargetCards(targetCards);
-    setTargetNumber(target);
-    setPlayCards(drawnCards);
-    
-    // Reset game state
-    setSelectedCardIndices([]);
-    setEquation([]);
-    setResult(null);
-    setMessage('Unlimited Mode: Make the target number with any combination of cards and operations!');
-    setHasWon(false);
-  }, []);
+  }, [gameType]);
   
   // Renamed original startGame
   const redealGame = useCallback(() => {
@@ -1754,13 +2151,18 @@ const Game = () => {
       if (calculatedResult !== undefined && !isNaN(calculatedResult)) {
         setResult(calculatedResult);
         
-        // Check if the player has won - must match target AND use all cards
-        if (calculatedResult === targetNumber) {
+        // Check if the player has won - value must match target AND use all cards
+        const targetValue = gameType === '24++' ? targetNumber : 24;
+        
+        if (calculatedResult === targetValue) {
           // Count cards used in the equation
           const numberCardsUsed = selectedCardIndices.length;
           
-          if (numberCardsUsed === playCards.length) {
-            setMessage('You won! You created the goal number using all cards!');
+          // Check if the right number of cards are used (7 for 24++, 4 for 24)
+          const requiredCardCount = gameType === '24++' ? playCards.length : 4;
+          
+          if (numberCardsUsed === requiredCardCount) {
+            setMessage(`You won! You created the goal number using all ${requiredCardCount} cards!`);
             setHasWon(true);
             setIsSolvedModalOpen(true);
             
@@ -1770,7 +2172,7 @@ const Game = () => {
             //   winSoundRef.current.play().catch(e => console.error("Error playing sound:", e));
             // }
           } else {
-            setMessage(`You've found the target number, but you need to use all 7 cards to win. You've used ${numberCardsUsed} cards.`);
+            setMessage(`You've found the target number, but you need to use all ${requiredCardCount} cards to win. You've used ${numberCardsUsed} cards.`);
           }
         }
       } else {
@@ -1780,7 +2182,7 @@ const Game = () => {
       console.error('Error evaluating equation', error);
       setResult(null);
     }
-  }, [equation, targetNumber, selectedCardIndices, playCards]);
+  }, [equation, targetNumber, selectedCardIndices, playCards, gameType]);
   
   // Evaluate the equation
   useEffect(() => {
@@ -2063,6 +2465,23 @@ const Game = () => {
           </select>
           <div className="dropdown-arrow">▼</div>
         </div>
+      </div>
+    );
+  };
+
+  // Add game type toggle UI to the header
+  const renderGameTypeToggle = () => {
+    return (
+      <div className="game-type-toggle">
+        <button 
+          className={`game-type-button ${gameType === '24' ? 'active' : ''}`}
+          onClick={toggleGameType}
+          title={gameType === '24' ? "Switch to 24++" : "Switch to 24"}
+          aria-label={`Switch to ${gameType === '24' ? '24++' : '24'} game mode`}
+        >
+          <span className="game-type-text left">24++</span>
+          <span className="game-type-text right">24</span>
+        </button>
       </div>
     );
   };
@@ -2363,15 +2782,15 @@ const Game = () => {
             onClick={() => setIsInstructionsModalOpen(true)}
             title="How to Play"
           >
-            <span className="instructions-icon">❓</span>
+            <span className="instructions-icon">ℹ️</span>
           </button>
           
           <button 
-            className="theme-toggle" 
-            onClick={toggleDarkMode}
-            title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            className="settings-button"
+            onClick={() => setIsSettingsModalOpen(true)}
+            title="Settings"
           >
-            {darkMode ? "☀️" : "🌙"}
+            <span className="settings-icon">⚙️</span>
           </button>
         </div>
       </div>
@@ -2383,7 +2802,7 @@ const Game = () => {
       <div className="target-number-display">
         <p className="game-message">{message}</p>
         <div className="target-cards">
-          {gameMode !== 'daily' && (
+          {gameMode !== 'daily' && gameType === '24++' && (
             <div 
               className="card face-down-card"
               onClick={redealGame}
@@ -2393,25 +2812,38 @@ const Game = () => {
               <div className="redeal-text">REDEAL</div>
             </div>
           )}
-          {targetCards.map((card, index) => (
-            <div 
-              key={`target-${index}`}
-              className="card"
-              style={{ color: card.suit === '♥' || card.suit === '♦' ? 'red' : 'black' }}
-            >
-              <div className="card-corner top-left">
-                <div className="card-value">{getDisplayValue(card.value)}</div>
-                <div className="card-suit">{card.suit}</div>
+          {gameType === '24++' ? (
+            targetCards.map((card, index) => (
+              <div 
+                key={`target-${index}`}
+                className="card"
+                style={{ color: card.suit === '♥' || card.suit === '♦' ? 'red' : 'black' }}
+              >
+                <div className="card-corner top-left">
+                  <div className="card-value">{getDisplayValue(card.value)}</div>
+                  <div className="card-suit">{card.suit}</div>
+                </div>
+                <div className="card-center-suit">{card.suit}</div>
+                <div className="card-corner bottom-right">
+                  <div className="card-value">{getDisplayValue(card.value)}</div>
+                  <div className="card-suit">{card.suit}</div>
+                </div>
               </div>
-              <div className="card-center-suit">{card.suit}</div>
-              <div className="card-corner bottom-right">
-                <div className="card-value">{getDisplayValue(card.value)}</div>
-                <div className="card-suit">{card.suit}</div>
+            ))
+          ) : (
+            gameMode !== 'daily' && (
+              <div 
+                className="card face-down-card"
+                onClick={redealGame}
+                title="Redeal cards"
+              >
+                <div className="card-back-pattern"></div>
+                <div className="redeal-text">REDEAL</div>
               </div>
-            </div>
-          ))}
+            )
+          )}
         </div>
-        <h2 data-number={targetNumber}>Goal: <span>{targetNumber}</span></h2>
+        <h2 data-number={gameType === '24++' ? targetNumber : 24}>Goal: <span>{gameType === '24++' ? targetNumber : 24}</span></h2>
       </div>
       
       {/* Play Cards Section */}
@@ -2579,7 +3011,7 @@ const Game = () => {
 
       {/* Credits */}
       <div className="credits">
-        V1.4 - Created by <a href="https://cmxu.io" target="_blank" rel="noopener noreferrer">Calvin Xu</a> with <a href="https://anthropic.com" target="_blank" rel="noopener noreferrer">Claude</a>.
+        V1.5 - Created by <a href="https://cmxu.io" target="_blank" rel="noopener noreferrer">Calvin Xu</a> with <a href="https://anthropic.com" target="_blank" rel="noopener noreferrer">Claude</a>.
       </div>
 
       {/* Confetti overlay - repositioned to render on top of modals */}
@@ -2607,12 +3039,23 @@ const Game = () => {
         equation={equation}
         onRedeal={redealGame}
         gameMode={gameMode}
+        gameType={gameType}
         onPlayUnlimited={() => {
           // Close the solved modal
           setIsSolvedModalOpen(false);
           // Switch to unlimited mode
           handleModeSelection('unlimited');
         }}
+      />
+      
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        darkMode={darkMode}
+        toggleDarkMode={toggleDarkMode}
+        gameType={gameType}
+        toggleGameType={toggleGameType}
       />
     </div>
   );

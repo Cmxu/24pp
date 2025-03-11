@@ -2,6 +2,27 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Parser } from 'expr-eval';
 import './Game.css';
 
+// Instead of loading solvable.json, we'll load compressed_solvable.json
+let compressedSolvableData = null;
+
+// Load the compressed solvable data asynchronously
+const loadSolvableData = async () => {
+  try {
+    // Dynamic import of the compressed JSON file
+    const response = await fetch('/compressed_solvable.json');
+    if (!response.ok) {
+      throw new Error(`Failed to load compressed_solvable.json: ${response.status} ${response.statusText}`);
+    }
+    compressedSolvableData = await response.json();
+    console.log('Compressed solvable data loaded successfully');
+  } catch (error) {
+    console.error('Error loading compressed solvable data:', error);
+  }
+};
+
+// Call this function early to start loading the data
+loadSolvableData();
+
 const OPERATIONS = ['+', '-', '×', '÷', '(', ')'];
 
 // Create a seeded random number generator for daily mode
@@ -93,6 +114,122 @@ const generateTargetCards = (deck) => {
   }
   
   return { targetCards, remainingDeck };
+};
+
+// Encode a key list (sorted hand of 7 cards) into the compressed format
+const encodeKey = (keyList) => {
+  const counts = Array(9).fill(0);
+  for (const num of keyList) {
+    if (num >= 1 && num <= 9) {
+      counts[num - 1]++;
+    }
+  }
+  
+  // Convert counts to a 27-bit string (3 bits per number for 9 numbers)
+  let bitStr = '';
+  for (const count of counts) {
+    bitStr += count.toString(2).padStart(3, '0');
+  }
+  
+  // Convert bit string to number
+  const num = parseInt(bitStr, 2);
+  
+  // Convert to bytes and then to base64
+  const buffer = new ArrayBuffer(4);
+  const view = new DataView(buffer);
+  view.setUint32(0, num);
+  
+  // Create a byte array from the buffer
+  const bytes = new Uint8Array(buffer);
+  
+  // Convert to base64
+  return btoa(String.fromCharCode.apply(null, bytes));
+};
+
+// Check if a target number is in the encoded value bit array
+const isTargetInEncodedValue = (encodedValue, targetNumber, possibleValues) => {
+  try {
+    // Decode base64 to bytes
+    const binaryString = atob(encodedValue);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    
+    // Find the index of the target in possible values
+    const targetIndex = possibleValues.indexOf(targetNumber);
+    if (targetIndex === -1) {
+      console.log(`Target ${targetNumber} not found in possible values`);
+      return false;
+    }
+    
+    // Determine which byte and bit position to check
+    const byteIndex = Math.floor(targetIndex / 8);
+    const bitPosition = 7 - (targetIndex % 8); // Bits are stored MSB first
+    
+    // Check if the specific bit is set
+    const result = (bytes[byteIndex] & (1 << bitPosition)) !== 0;
+    console.log(`Checking if target ${targetNumber} is solvable: ${result}`);
+    return result;
+  } catch (error) {
+    console.error("Error checking if target is in encoded value:", error);
+    return false;
+  }
+};
+
+// Generate all possible values (targets from 100 to 999, no zeros)
+const generatePossibleValues = () => {
+  const result = [];
+  for (let i = 100; i < 1000; i++) {
+    if (!i.toString().includes('0')) {
+      result.push(i);
+    }
+  }
+  return result;
+};
+
+// Cached possible values
+const possibleValues = generatePossibleValues();
+
+// Check if a game with given cards and target is solvable
+const isGameSolvable = (playCards, targetNumber) => {
+  try {
+    // If compressed solvable data hasn't loaded yet, assume the game is solvable
+    if (!compressedSolvableData) {
+      console.warn('Compressed solvable data not loaded yet, assuming game is solvable');
+      return true;
+    }
+
+    // Sort the gameValues to prepare for encoding
+    const sortedCardValues = playCards.map(card => card.gameValue).sort((a, b) => a - b);
+    console.log('Sorted card values:', sortedCardValues);
+    
+    // Encode the key
+    const encodedKey = encodeKey(sortedCardValues);
+    console.log('Encoded key:', encodedKey);
+    
+    // Check if the encoded key exists in the compressed data
+    if (compressedSolvableData[encodedKey]) {
+      console.log('Key found in compressed data');
+      // Check if the target is in the encoded value
+      return isTargetInEncodedValue(
+        compressedSolvableData[encodedKey], 
+        targetNumber, 
+        possibleValues
+      );
+    } else {
+      console.log('Key not found in compressed data');
+    }
+    
+    return false;
+  } catch (error) {
+    console.error("Error checking if game is solvable:", error, {
+      playCards,
+      targetNumber
+    });
+    // If there's an error, return true to prevent infinite loops
+    return true;
+  }
 };
 
 // Simple confetti component
@@ -1116,22 +1253,49 @@ const Game = () => {
   
   // Start a daily game with seeded randomness
   const startDailyGame = useCallback(() => {
-    const dailySeed = getDailySeed();
+    let deck, targetCards, remainingDeck, drawnCards, target;
+    let isSolvable = false;
+    let attempts = 0;
+    const maxAttempts = 10; // Limit the number of attempts to prevent infinite loops
     
-    // Create and shuffle deck with seed
-    let deck = createDeck();
-    deck = shuffleDeck(deck, true, dailySeed);
+    while (!isSolvable && attempts < maxAttempts) {
+      attempts++;
+      const dailySeed = getDailySeed() + attempts; // Modify seed slightly for each attempt
+      
+      // Create and shuffle deck with seed
+      deck = createDeck();
+      deck = shuffleDeck(deck, true, dailySeed);
+      
+      // Generate target cards (values 1-9 only)
+      const targetResult = generateTargetCards(deck);
+      targetCards = targetResult.targetCards;
+      remainingDeck = targetResult.remainingDeck;
+      
+      // Calculate target number (3-digit number from the 3 target cards)
+      target = parseInt(targetCards.map(card => card.gameValue).join(''));
+      
+      // Deal play cards (remaining 7 cards)
+      const cardsResult = drawCards(remainingDeck, 7);
+      drawnCards = cardsResult.drawnCards;
+      
+      // Check if the game is solvable
+      isSolvable = isGameSolvable(drawnCards, target);
+      
+      if (isSolvable) {
+        console.log(`Found solvable daily game after ${attempts} attempt(s). Target: ${target}`);
+      } else if (attempts < maxAttempts) {
+        console.log(`Daily game attempt ${attempts} with target ${target} is not solvable with ${drawnCards.map(card => card.gameValue).join(', ')}. Trying again...`);
+      }
+    }
     
-    // Generate target cards (values 1-9 only)
-    const { targetCards, remainingDeck } = generateTargetCards(deck);
+    // If we couldn't find a solvable game after maxAttempts, use the last generated one anyway
+    if (!isSolvable) {
+      console.warn(`Could not find a solvable daily game after ${maxAttempts} attempts. Using the last generated game.`);
+    }
+    
+    // Set the game state with the solvable game
     setTargetCards(targetCards);
-    
-    // Calculate target number (3-digit number from the 3 target cards)
-    const target = parseInt(targetCards.map(card => card.gameValue).join(''));
     setTargetNumber(target);
-    
-    // Deal play cards (remaining 7 cards)
-    const { drawnCards } = drawCards(remainingDeck, 7);
     setPlayCards(drawnCards);
     
     // Reset game state
@@ -1147,20 +1311,48 @@ const Game = () => {
   
   // Start an unlimited game (random)
   const startUnlimitedGame = useCallback(() => {
-    // Create and shuffle deck randomly
-    let deck = createDeck();
-    deck = shuffleDeck(deck);
+    let deck, targetCards, remainingDeck, drawnCards, target;
+    let isSolvable = false;
+    let attempts = 0;
+    const maxAttempts = 10; // Limit the number of attempts to prevent infinite loops
     
-    // Generate target cards (values 1-9 only)
-    const { targetCards, remainingDeck } = generateTargetCards(deck);
+    while (!isSolvable && attempts < maxAttempts) {
+      attempts++;
+      
+      // Create and shuffle deck randomly
+      deck = createDeck();
+      deck = shuffleDeck(deck);
+      
+      // Generate target cards (values 1-9 only)
+      const targetResult = generateTargetCards(deck);
+      targetCards = targetResult.targetCards;
+      remainingDeck = targetResult.remainingDeck;
+      
+      // Calculate target number (3-digit number from the 3 target cards)
+      target = parseInt(targetCards.map(card => card.gameValue).join(''));
+      
+      // Deal play cards (remaining 7 cards)
+      const cardsResult = drawCards(remainingDeck, 7);
+      drawnCards = cardsResult.drawnCards;
+      
+      // Check if the game is solvable
+      isSolvable = isGameSolvable(drawnCards, target);
+      
+      if (isSolvable) {
+        console.log(`Found solvable unlimited game after ${attempts} attempt(s). Target: ${target}`);
+      } else if (attempts < maxAttempts) {
+        console.log(`Unlimited game attempt ${attempts} with target ${target} is not solvable with ${drawnCards.map(card => card.gameValue).join(', ')}. Trying again...`);
+      }
+    }
+    
+    // If we couldn't find a solvable game after maxAttempts, use the last generated one anyway
+    if (!isSolvable) {
+      console.warn(`Could not find a solvable unlimited game after ${maxAttempts} attempts. Using the last generated game.`);
+    }
+    
+    // Set the game state with the solvable game
     setTargetCards(targetCards);
-    
-    // Calculate target number (3-digit number from the 3 target cards)
-    const target = parseInt(targetCards.map(card => card.gameValue).join(''));
     setTargetNumber(target);
-    
-    // Deal play cards (remaining 7 cards)
-    const { drawnCards } = drawCards(remainingDeck, 7);
     setPlayCards(drawnCards);
     
     // Reset game state

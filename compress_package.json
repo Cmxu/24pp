@@ -1,0 +1,10 @@
+{
+  "name": "compress-solvable",
+  "version": "1.0.0",
+  "description": "Compress solvable.json to compressed_solvable.json",
+  "main": "compress_solvable.js",
+  "type": "module",
+  "scripts": {
+    "compress": "node compress_solvable.js"
+  }
+} 

@@ -14,6 +14,9 @@
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
     "@vitejs/plugin-react": "^4.0.3",
+    "png-to-ico": "^2.1.8",
+    "sharp": "^0.33.5",
+    "svg-to-ico": "^1.0.15",
     "typescript": "^5.0.2",
     "vite": "^6.2.0"
   },

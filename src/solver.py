@@ -200,7 +200,7 @@ def brute_speed(hand, val, ops = ['+', '-', '*', '/', '-2', '/2']):
 solvable_hands = []
 arr = [4,4,4,4,4,4,4,4,4,100]
 for i in str(val):
-    arr[int(i)] -= 1
+    arr[int(i) - 1] -= 1
 
 possible_vals = [i for i in range(100, 1000)]
 possible_vals = [i for i in possible_vals if '0' not in str(i)]
@@ -212,7 +212,7 @@ times_fail = []
 for val in tqdm(possible_vals):
     arr = [4,4,4,4,4,4,4,4,4,100]
     for i in str(val):
-        arr[int(i)] -= 1
+        arr[int(i) - 1] -= 1
     sv = {}
     count = 0
     tot = 0
